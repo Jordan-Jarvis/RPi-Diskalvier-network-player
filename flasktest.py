@@ -196,7 +196,7 @@ def play_start():
     return Response(json.dumps(response),  mimetype='application/json')
 
 @APP.route('/ajax/play-stop/')
-def play_stop():
+def play_stop(): 
     	# [1] : setIdClass : array of ids to change classes and therefore styles for.
 		# [2] : progress
 		# [3] : timeElapsed
