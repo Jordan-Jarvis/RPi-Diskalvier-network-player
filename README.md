@@ -1,4 +1,5 @@
 # RPi-Diskalvier-network-player
+(inspired by Florian Bador)
 This player allows for a Raspberry Pi to host a Midi player/recorder server. It has a web interface and ajax/json support for future Alexa and Google home integration.
 Very much a WIP
 
