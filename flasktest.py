@@ -34,7 +34,7 @@ def staticFile(name):
     return flask.send_file("static/" + name)
 
 @APP.route('/ajax/start')
-def start():
+def start(returnArray = 0):
         	# [1] : setIdClass : array of ids to change classes and therefore styles for.
 		# [2] : progress
 		# [3] : timeElapsed
@@ -63,6 +63,8 @@ def start():
     response.append(500)         # 5 position
     response.append(1)          # 6 position
     response.append(0)          # 7 position
+    if returnArray == 1:
+        return response
     return Response(json.dumps(response),  mimetype='application/json')
 
 
@@ -95,7 +97,10 @@ def startSong(song):
         else:
             print(masterList[i])
             masterList[i][8] = '0'
-    return get_int()
+    response = []
+    response.append(get_int(1))
+    response.append(play_stop(1))
+    return Response(json.dumps((get_int(1),start(1))),  mimetype='application/json')
 
 @APP.route('/ajax/rate-<rating>')
 def changeRating(rating):
@@ -131,8 +136,9 @@ def sendMenu():
 
 
 @APP.route('/ajax/get-int/')
-def get_int():
+def get_int(returnArray = 0):
     os.chdir(cwd)
+    container = []
     songlist = os.listdir(cwd + "/playlists/" + currentPlaylist)
 
 
@@ -160,7 +166,9 @@ def get_int():
             #masterList[1][8] = "1" # re-assign current selection
         else:
             masterList[tempval][8] = "1"
-    return Response(json.dumps(masterList),  mimetype='application/json')
+    if (returnArray == 1):
+        return masterList
+    return Response(json.dumps((masterList,0)),  mimetype='application/json')
 
 @APP.route('/ajax/play-start/')
 def play_start():
@@ -193,10 +201,11 @@ def play_start():
     response.append(masterList[CurrentSongPos][3])         # 5 position
     response.append(1)          # 6 position
     response.append(0)          # 7 position
-    return Response(json.dumps(response),  mimetype='application/json')
+
+    return Response(json.dumps((response,0)),  mimetype='application/json')
 
 @APP.route('/ajax/play-stop/')
-def play_stop(): 
+def play_stop(returnArray = 0): 
     	# [1] : setIdClass : array of ids to change classes and therefore styles for.
 		# [2] : progress
 		# [3] : timeElapsed
@@ -224,7 +233,9 @@ def play_stop():
     response.append(masterList[CurrentSongPos][3])         # 5 position
     response.append(0)          # 6 position
     response.append(1)          # 7 position
-    return Response(json.dumps(response),  mimetype='application/json')
+    if returnArray == 1:
+        return response
+    return Response(json.dumps((response, None)),  mimetype='application/json')
 
 
 @APP.route('/')

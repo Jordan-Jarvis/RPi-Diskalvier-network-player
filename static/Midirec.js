@@ -58,33 +58,37 @@
 		// r : response body
 
 		try{
-			var obj = JSON.parse(r); 
-			// PLAYER STATUS :
-			if( obj[0] == 'PLAYER' ){
-				updatePlayer(obj);
-				updateIn = 30;
-				
-			// PLAYLIST CONTENT :
-			}else if( obj[0] == 'PLAYLIST' ){
-				updatePlayList(obj);
-				updateIn = 30;
-				
-			// PUT SOME CONTENT IN THE OVERLAY & OPEN IT :
-			}else if( obj[0] == 'OVERLAY' ){
+			var json = JSON.parse(r); 
+			for (obj in json)
+			{
+				console.log(json[obj][0])
+				// PLAYER STATUS :
+				if( json[obj][0] == 'PLAYER' ){
+					updatePlayer(json[obj]);
+					updateIn = 30;
+					
+				// PLAYLIST CONTENT :
+				}else if( json[obj][0] == 'PLAYLIST' ){
+					updatePlayList(json[obj]);
+					updateIn = 30;
+					
+				// PUT SOME CONTENT IN THE OVERLAY & OPEN IT :
+				}else if( json[obj][0] == 'OVERLAY' ){
 
-				openOverlay(data[1]);
-				
-			// PUT AN ELEMENT IN FOCUS (typically input when renaming) :
-			}else if( obj[0] == 'FOCUS' ){
-				
-				var ele = document.getElementById(data[1]);
-				if(ele) setTimeout( function(e){ e.focus() }, 100, ele );
-				
-			// OPEN THE KEYBOARD TO TYPE IN AN INPUT :
-			}else if( obj[0] == 'KEYBOARD' ){
-				
-				setTimeout( function(id){ openKeyboard(id) }, 100, data[1] );
-				
+					openOverlay(data[1]);
+					
+				// PUT AN ELEMENT IN FOCUS (typically input when renaming) :
+				}else if( json[obj][0] == 'FOCUS' ){
+					
+					var ele = document.getElementById(data[1]);
+					if(ele) setTimeout( function(e){ e.focus() }, 100, ele );
+					
+				// OPEN THE KEYBOARD TO TYPE IN AN INPUT :
+				}else if( json[obj][0] == 'KEYBOARD' ){
+					
+					setTimeout( function(id){ openKeyboard(id) }, 100, data[1] );
+					
+				}
 			}
 		}
 		catch{
