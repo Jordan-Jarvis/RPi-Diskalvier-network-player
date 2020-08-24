@@ -60,7 +60,7 @@ def start(returnArray = 0):
     response.append(5)         # 2 position
     response.append(0)      # 3 position
     response.append(masterList[CurrentSongPos][4])        # 4 position
-    response.append(500)         # 5 position
+    response.append(masterList[CurrentSongPos][3])         # 5 position
     response.append(1)          # 6 position
     response.append(0)          # 7 position
     if returnArray == 1:
@@ -82,6 +82,41 @@ def changeTime(time, time2):
     """ Displays the page greats who ever comes to visit it.
     """
     print(time2)
+    killAllProcesses()
+    releaseAll()
+    CurrentSongPos = getCurrentSongPos()
+    currentPercent = int(time)/int(time2)
+    numSecondsIntoSong = int(currentPercent * masterList[CurrentSongPos][3])
+
+    idToChange = []
+    idToChange.append(["prog", currentPercent])
+    idToChange.append(["but_rec", ""])
+    idToChange.append(["but_ply", "pause"])
+    idToChange.append(["rating","star" + masterList[CurrentSongPos][7]])
+    idToChange.append(["but_con","ena"])
+    idToChange.append(["but_rep","ena"])
+    response = []
+    response.append("PLAYER")   # 0 position
+    response.append(idToChange) # 1 position
+    response.append(5)         # 2 position
+    response.append(int(currentPercent * masterList[CurrentSongPos][3]))      # 3 position
+
+    response.append(masterList[CurrentSongPos][4])        # 4 position
+    response.append(masterList[CurrentSongPos][3])         # 5 position
+    response.append(1)          # 6 position
+    response.append(0)          # 7 position
+    resetTimer()
+    addToTimer(numSecondsIntoSong)
+    startTimer()
+
+    runCommandNoOutput([cwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c","-s " + str(int(currentPercent * masterList[CurrentSongPos][3])),"-b " + str(masterList[CurrentSongPos][4]), cwd + "/playlists/" + currentPlaylist + "/" + masterList[CurrentSongPos][0]])
+    return Response(json.dumps((response,0)),  mimetype='application/json')
+
+
+
+
+    
+
     return flask.send_file("static/" + time)
 
 @APP.route('/ajax/selectsong-<song>')
@@ -291,7 +326,7 @@ def killAllProcesses():
 
 def releaseAll():
     runCommandNoOutput([cwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c", cwd + "/empty.mid"])
-    runCommand([cwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c", cwd + "/empty.mid"])
+    runCommandNoOutput([cwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c", cwd + "/empty.mid"])
 
 def getTimeElapsed():
     return int(SongTime[1])
@@ -305,6 +340,11 @@ def startTimer():
 
 def stopTimer():
     SongTime[1] = time.time() - SongTime[0]
+
+def addToTimer(timeToAdd):
+    print("I ADDED :" + str(timeToAdd))
+    SongTime[1] = SongTime[1] + timeToAdd
+    print("the current timer is:" + str(getTimeElapsed()))
 
 if __name__ == '__main__':
     APP.debug=True

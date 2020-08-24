@@ -310,7 +310,7 @@
 				eleProg.style.width = data[2];
 			}
 		}
-		eleTimeCur.innerHTML = data[3];
+		eleTimeCur.innerHTML = secToTime(data[3]);
 		elapsed = data[3];
 		duration = data[5];
 		if (data[4] > 0)
