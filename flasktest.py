@@ -10,22 +10,53 @@ import multiprocessing
 
 cwd = os.getcwd()
 currentPlaylist = "Classical-I"
+playlists = []
+for item in os.listdir(cwd + "/playlists/"):
+    if os.path.isdir(cwd + "/playlists/" + item):
+        playlists.append(item)
+try:
+    currentPlaylist = playlists[0]
+    print(currentPlaylist)
+except:
+    currentPlaylist = "Classical-I"
+currentPlaylist = "Classical-I"
 masterList = []
 masterSongList = []
 pid = []
 SongTime = [0,0] # start time for song, end/kill time
-SelectedPort = "20:0"
+SelectedPort = "20:0" 
 def getCurrentSongPos():
     CurrentSongPos = -1
     for i in range(1,len(masterList)):
-        if masterList[i][8] == '1':
+        if masterList[i][8] == 1:
             CurrentSongPos = i
     if (CurrentSongPos == -1):
-        masterList[0][8] = '1'
+        masterList[0][8] = 1
         CurrentSongPos = 0
     return CurrentSongPos
+
+def setCurrentSongPos(indexLocation):
+    for i in range(1,len(masterList)):
+        masterList[i][8] = 0
+    print(indexLocation)
+    masterList[indexLocation][8] = 1
+    return
 # Create the application.
 APP = flask.Flask(__name__)
+
+@APP.route('/ajax/setplaylist/<playlist>')
+def setplaylist(playlist):
+    global currentPlaylist
+    currentPlaylist = playlist
+    global masterSongList
+    masterSongList = []
+    global masterList
+    masterList = []
+    killAllProcesses()
+    return Response(json.dumps((get_int(1),0)),  mimetype='application/json')
+
+    return get_int(0)
+
 
 @APP.route('/static/<name>/')
 def staticFile(name):
@@ -42,6 +73,7 @@ def start(returnArray = 0):
 		# [5] : total Time of song
 		# [6] : timer enable
         # [7] : numDisks
+    killAllProcesses()
     resetTimer()
     startTimer()
     CurrentSongPos = getCurrentSongPos()
@@ -65,7 +97,7 @@ def start(returnArray = 0):
     response.append(0)          # 7 position
     if returnArray == 1:
         return response
-    return Response(json.dumps(response),  mimetype='application/json')
+    return Response(json.dumps((response,get_int(1))),  mimetype='application/json')
 
 
 
@@ -128,10 +160,10 @@ def startSong(song):
     for i in range(1,len(masterList)):
         print(song + " " + masterList[i][0])
         if song == masterList[i][0]:
-            masterList[i][8] = '1'
+            masterList[i][8] = 1
         else:
             print(masterList[i])
-            masterList[i][8] = '0'
+            masterList[i][8] = 0
     response = []
     response.append(get_int(1))
     response.append(play_stop(1))
@@ -142,7 +174,7 @@ def changeRating(rating):
     i = 0
 
     for i in range(1,len(masterList)):
-        if masterList[i][8] == '1':
+        if masterList[i][8] == 1:
             masterList[i][7] = rating
         else:
             pass
@@ -160,7 +192,35 @@ def summary():
 
 @APP.route('/ajax/menu')
 def sendMenu():
-    sendMenu = '''OVERLAY\n<div id=menu_midiin><label>MIDI input</label><select onchange="sendRequest('setconf/midiin/'+this.value)"></select></div><div id=menu_midiout><label>MIDI output</label><select onchange="sendRequest('setconf/midiout/'+this.value)"></select></div><div id=menu_noteoff><input id=menu_noteoff_chk type=checkbox name=menu_noteoff_chk value=1 checked onchange="sendRequest('setconf/noteoff/'+( this.checked ? 1 : 0) )"><label for=menu_noteoff_chk>Send notes-off before playing</label></div><div id=menu_usb><label>USB Drives</label></div><div id=menu_ply><label>Playlist Folder</label><span style="color:#ff4848">Cannot find any playlist. Please try to re-insert the USB sticks.</span></div><a id=menu_shut onclick="sendRequest('shut-open',this)">SHUTDOWN</a><div id=menu_shut_info>Or close Chrome kiosk with ALT+F4</div>'''
+
+
+    midiIn = []
+    midiIn.append("herroro")
+    midiIn.append("heo")
+    midiOut = []
+    midiOut.append("herroro")
+    midiOut.append("heo")
+
+
+    sendMenu = '''OVERLAY\n<div id=menu_midiin><label>MIDI input</label><select onchange="sendRequest('setconf/midiin/'+this.value)">'''
+    for device in midiIn:
+        sendMenu = sendMenu + '''<option value="''' + device + '">' + device + '''</option>'''
+    sendMenu = sendMenu + '''</select></div><div id=menu_midiout><label>MIDI output</label><select onchange="sendRequest('setconf/midiout/'+this.value)">'''
+    
+    for device in midiOut:
+        sendMenu = sendMenu + '''<option value="''' + device + '">' + device + '''</option>'''
+    
+    sendMenu = sendMenu + '''</select></div><div id=menu_noteoff><input id=menu_noteoff_chk type=checkbox name=menu_noteoff_chk value=1 checked onchange="sendRequest('setconf/noteoff/'+( this.checked ? 1 : 0) )"><label for=menu_noteoff_chk>Send notes-off before playing</label></div><div id=menu_usb><label>USB Drives</label></div><div id=menu_ply><label>Playlist Folder</label>'''
+    sendMenu = sendMenu + '''<select onchange="sendRequest('setplaylist/'+this.value)">'''
+    for folder in playlists:
+        sendMenu = sendMenu + '''<option value="''' + folder + '"'
+        if folder == currentPlaylist:
+            sendMenu = sendMenu + ''' selected="selected"'''
+        sendMenu = sendMenu + '>' + folder + '''</option>'''
+    
+    sendMenu = sendMenu + '''</div><a id=menu_shut onclick="sendRequest('shut-open',this)">SHUTDOWN</a><div id=menu_shut_info>Or close Chrome kiosk with ALT+F4</div>'''
+    
+    
     response = APP.response_class(
         response=sendMenu,
         status=200,
@@ -172,35 +232,35 @@ def sendMenu():
 
 @APP.route('/ajax/get-int/')
 def get_int(returnArray = 0):
-    os.chdir(cwd)
     container = []
+
     songlist = os.listdir(cwd + "/playlists/" + currentPlaylist)
-
-
+    print(currentPlaylist)
+    global masterSongList
+    global masterList
     if len(songlist) != len(masterSongList):
-        for i in range(len(masterSongList)):
-            masterSongList.pop()
+        masterSongList = []
         for song in songlist:
             masterSongList.append(song)
 
         tempval = 0
         for i in range(1, len(masterList)):
-            if masterList[i][8] == '1':
+            if masterList[i][8] == 1:
                 tempval = i #find current assigned value position
-        for i in range(len(masterList)):
-            masterList.pop()
+        masterList = []
         masterList.append('PLAYLIST')
-        
-        os.chdir('./playlists/' + currentPlaylist + "/")
         for item in songlist:
             if item.endswith(".mid") or item.endswith(".MID"):
-                masterList.append(getMidiInfo(item))
-        os.chdir(cwd)
+                try:
+                    masterList.append(getMidiInfo(item))
+                except:
+                    print("Skipping outdated stuff.")
+                    pass
         if tempval == 0:
             pass
             #masterList[1][8] = "1" # re-assign current selection
         else:
-            masterList[tempval][8] = "1"
+            masterList[tempval][8] = 1
     if (returnArray == 1):
         return masterList
     return Response(json.dumps((masterList,0)),  mimetype='application/json')
@@ -238,6 +298,16 @@ def play_start():
     response.append(0)          # 7 position
 
     return Response(json.dumps((response,0)),  mimetype='application/json')
+
+@APP.route('/ajax/nextSong/')
+def play_next():
+    currentPos = getCurrentSongPos()
+    if currentPos + 1 == len(masterList):
+        setCurrentSongPos(1)
+    else:
+        setCurrentSongPos(currentPos + 1)
+    
+    return start()
 
 @APP.route('/ajax/play-stop/')
 def play_stop(returnArray = 0): 
@@ -285,17 +355,17 @@ app = Flask(__name__, static_url_path='')
 
 def getMidiInfo(fileLocation):
     
-    try:
-        os.chdir('./playlists/' + currentPlaylist + "/")
-    except:
-        pass
-    midiFile = mido.MidiFile(fileLocation)
-    mid = []
-    midiinfo = runCommand([cwd + '/metamidi/metamidi', '-l' , cwd + '/playlists/' + currentPlaylist + "/" + fileLocation])
 
+    midiFile = mido.MidiFile(cwd + '/playlists/' + currentPlaylist + "/" + fileLocation)
+    mid = []
+    
+    midiinfo = runCommand([cwd + '/metamidi/metamidi', '-l' , cwd + '/playlists/' + currentPlaylist + "/" + fileLocation])
     midiinfo = midiinfo.split(';')
     #print(midiinfo[1].split(',')[0])
-    return [fileLocation, '2020-04-20', "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), "250", fileLocation, "4","0","1"]
+    try:
+        return [fileLocation, '2020-04-20', "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), "250", fileLocation, "4",0,"1"]
+    except:
+        print(midiFile)
 
 def runCommand(command):
     process = subprocess.Popen(command,
@@ -345,6 +415,9 @@ def addToTimer(timeToAdd):
     print("I ADDED :" + str(timeToAdd))
     SongTime[1] = SongTime[1] + timeToAdd
     print("the current timer is:" + str(getTimeElapsed()))
+
+def escapeSpaces(stringInput):
+    return stringInput.replace(" ", "\\ ")
 
 if __name__ == '__main__':
     APP.debug=True

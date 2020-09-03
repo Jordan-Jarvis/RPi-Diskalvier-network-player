@@ -589,6 +589,7 @@
 			eleButPly.className = '';
 			eleButRec.className = '';
 			updateIn = 15;
+			sendRequest('nextSong/'); // play next song when finished
 		}
 		
 		// Recording :
