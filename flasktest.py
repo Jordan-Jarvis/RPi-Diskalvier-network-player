@@ -7,7 +7,17 @@ import time
 import os
 import subprocess
 import multiprocessing
+import config
+import configparser
+import io
+import parseMidi
+portList = []
+def main():
+    global portList 
+    portList = getPorts()
 
+#GLOBALS!! NEED CHANGES
+SelectedPort = "20:0" 
 cwd = os.getcwd()
 currentPlaylist = "Classical-I"
 playlists = []
@@ -24,7 +34,7 @@ masterList = []
 masterSongList = []
 pid = []
 SongTime = [0,0] # start time for song, end/kill time
-SelectedPort = "20:0" 
+
 def getCurrentSongPos():
     CurrentSongPos = -1
     for i in range(1,len(masterList)):
@@ -144,13 +154,6 @@ def changeTime(time, time2):
     runCommandNoOutput([cwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c","-s " + str(int(currentPercent * masterList[CurrentSongPos][3])),"-b " + str(masterList[CurrentSongPos][4]), cwd + "/playlists/" + currentPlaylist + "/" + masterList[CurrentSongPos][0]])
     return Response(json.dumps((response,0)),  mimetype='application/json')
 
-
-
-
-    
-
-    return flask.send_file("static/" + time)
-
 @APP.route('/ajax/selectsong-<song>')
 def startSong(song):
     i = 0
@@ -193,22 +196,24 @@ def summary():
 @APP.route('/ajax/menu')
 def sendMenu():
 
-
-    midiIn = []
-    midiIn.append("herroro")
-    midiIn.append("heo")
-    midiOut = []
-    midiOut.append("herroro")
-    midiOut.append("heo")
+    midiIn = getPorts()
+    midiOut = midiIn
 
 
     sendMenu = '''OVERLAY\n<div id=menu_midiin><label>MIDI input</label><select onchange="sendRequest('setconf/midiin/'+this.value)">'''
     for device in midiIn:
-        sendMenu = sendMenu + '''<option value="''' + device + '">' + device + '''</option>'''
+        sendMenu = sendMenu + '''<option value="''' + device.split()[0] + '"'
+        if device.split()[0] == SelectedPort:
+            sendMenu = sendMenu + ''' selected="selected"'''
+        sendMenu = sendMenu + '>' + device + '''</option>'''
+    
     sendMenu = sendMenu + '''</select></div><div id=menu_midiout><label>MIDI output</label><select onchange="sendRequest('setconf/midiout/'+this.value)">'''
     
     for device in midiOut:
-        sendMenu = sendMenu + '''<option value="''' + device + '">' + device + '''</option>'''
+        sendMenu = sendMenu + '''<option value="''' + device.split()[0] + '"'
+        if device.split()[0] == SelectedPort:
+            sendMenu = sendMenu + ''' selected="selected"'''
+        sendMenu = sendMenu + '>' + device + '''</option>'''
     
     sendMenu = sendMenu + '''</select></div><div id=menu_noteoff><input id=menu_noteoff_chk type=checkbox name=menu_noteoff_chk value=1 checked onchange="sendRequest('setconf/noteoff/'+( this.checked ? 1 : 0) )"><label for=menu_noteoff_chk>Send notes-off before playing</label></div><div id=menu_usb><label>USB Drives</label></div><div id=menu_ply><label>Playlist Folder</label>'''
     sendMenu = sendMenu + '''<select onchange="sendRequest('setplaylist/'+this.value)">'''
@@ -233,7 +238,6 @@ def sendMenu():
 @APP.route('/ajax/get-int/')
 def get_int(returnArray = 0):
     container = []
-
     songlist = os.listdir(cwd + "/playlists/" + currentPlaylist)
     print(currentPlaylist)
     global masterSongList
@@ -253,6 +257,7 @@ def get_int(returnArray = 0):
             if item.endswith(".mid") or item.endswith(".MID"):
                 try:
                     masterList.append(getMidiInfo(item))
+                    print(getMidiInfo(item)[4])
                 except:
                     print("Skipping outdated stuff.")
                     pass
@@ -261,6 +266,10 @@ def get_int(returnArray = 0):
             #masterList[1][8] = "1" # re-assign current selection
         else:
             masterList[tempval][8] = 1
+
+    player = parseMidi.Player()
+    masterList = player.playlist.get_song_list_list()
+    masterList.insert(0,'PLAYLIST')
     if (returnArray == 1):
         return masterList
     return Response(json.dumps((masterList,0)),  mimetype='application/json')
@@ -277,7 +286,7 @@ def play_start():
 		# [6] : timer enable
         # [7] : numDisks
     killAllProcesses()
-    runCommandNoOutput([cwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c","-s " + str(SongTime[1]),"-b " + str(masterList[CurrentSongPos][4]), cwd + "/playlists/" + currentPlaylist + "/" + masterList[CurrentSongPos][0]])
+    runCommandNoOutput([cwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c","-s " + str(getTimeElapsed()),"-b " + str(masterList[CurrentSongPos][4]), cwd + "/playlists/" + currentPlaylist + "/" + masterList[CurrentSongPos][0]])
 
     idToChange = []
     idToChange.append(["prog",70])
@@ -352,6 +361,17 @@ def index():
 
 app = Flask(__name__, static_url_path='')
 
+def getPorts():
+    ports = runCommand(['aplaymidi', '--list'])
+    ports = ports.split('\n')
+    ports.pop(0)
+    returnVal = []
+    for port in ports:
+        port = port.split()
+        if len(port) < 3:
+            continue
+        returnVal.append(port[0] + " " + port[1] + " " + port[2])
+    return returnVal
 
 def getMidiInfo(fileLocation):
     
@@ -420,7 +440,6 @@ def escapeSpaces(stringInput):
     return stringInput.replace(" ", "\\ ")
 
 if __name__ == '__main__':
+    main()
     APP.debug=True
     APP.run()
-    
- 
