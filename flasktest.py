@@ -28,7 +28,7 @@ try:
     currentPlaylist = playlists[0]
     print(currentPlaylist)
 except:
-    currentPlaylist = "Classical-I"
+    currentPlaylist = "Classical-I" 
 currentPlaylist = "Classical-I"
 masterList = []
 masterSongList = []
