@@ -6,14 +6,18 @@ class Timer:
         self.stopped = True
 
     def getTimeElapsed(self):
+        if self.SongTime[0] == 0 and self.stopped == False:
+            return self.SongTime[1]
         if self.stopped == True:
             return self.SongTime[1]
         else:
+            print("RUNNIN", self.SongTime[1])
             return time.time() + self.SongTime[1] - self.SongTime[0]
 
     def resetTimer(self):
         self.SongTime[0] = 0
         self.SongTime[1] = 0
+        self.stopped = True
 
     def startTimer(self, verbose = False):
         if self.stopped == True:
@@ -38,20 +42,44 @@ class SystemInterface():
     import subprocess
     def __init__(self):
         self.pid = []
-        self.settings = self.getSettings("settings.json")
+        self.settings = {}
+        self.getSettings("settings.json")
+        print(self.settings["ports"])
 
     def getSettings(self, configFile):
         self.configFile = configFile
+
         if os.path.exists(os.getcwd() + "/" + configFile):
             with open(os.getcwd() + "/" + configFile) as f:
                 self.settings = json.load(f)
-            self.settings["ports"] = self.getPorts()
+            ports = self.getPorts()
+            self.getPlaylists()
+            print(self.settings["playlists"])
+            self.settings["ports"] = ports
             if self.settings["selectedPort"] not in self.settings["ports"]:
                 self.settings["selectedPort"] = self.settings["ports"][0]
+            if self.settings["selectedInPort"] not in self.settings["ports"]:
+                self.settings["selectedInPort"] = self.settings["ports"][0]
+            if self.settings["playlist"] not in self.settings["playlists"]:
+                self.settings["playlist"] = self.settings["playlists"][0]
+            
         else:
             self.settings = {}
             self.settings["selectedPort"] = self.getPorts()[0]
+            self.settings["selectedInPort"] = self.getPorts()[0]
+            self.settings["playlist"] = "Classical-I"
+            self.settings["ports"] = self.getPorts()
             self.writeData()
+        return self.settings
+
+    def getPlaylists(self):
+        playlists = []
+        for item in os.listdir(os.getcwd() + "/playlists/"):
+            if os.path.isdir(os.getcwd() + "/playlists/" + item):
+                playlists.append(item)
+        playlists.sort()
+        self.settings["playlists"] = playlists
+        return playlists
 
     def writeData(self):
         with open(os.getcwd() + "/" + self.configFile, 'w') as json_file:
@@ -64,7 +92,40 @@ class SystemInterface():
         return self.settings["selectedPort"]
 
     def setCurrentPort(self, port):
-        self.settings["selectedPort"] = port
+        self.settings["ports"] = self.getPorts()
+        if len(port.split()) == 1:
+            for p in self.settings["ports"]:
+                if p.split()[0] == port:
+                    self.settings["selectedPort"] = p
+        else:
+            self.settings["selectedPort"] = port
+
+        print(self.settings["selectedPort"])
+        self.writeData()
+
+    def getCurrentInPortNumber(self):
+        return self.settings["selectedInPort"].split()[0]
+
+    def getCurrentInPort(self):
+        return self.settings["selectedInPort"]
+
+    def setCurrentInPort(self, port):
+        self.settings["ports"] = self.getPorts()
+        if len(port.split()) == 1:
+            for p in self.settings["ports"]:
+                if p.split()[0] == port:
+                    self.settings["selectedInPort"] = p
+        else:
+            self.settings["selectedInPort"] = port
+
+        print(self.settings["selectedInPort"])
+        self.writeData()
+
+    def getCurrentPlaylist(self):
+        return self.settings["playlist"]
+
+    def setCurrentPlaylist(self, playlist):
+        self.settings["playlist"] = playlist
 
     def getPorts(self):
         ports = Commands().runCommand(['aplaymidi', '--list'])
@@ -76,14 +137,29 @@ class SystemInterface():
             if len(port) < 3:
                 continue
             returnVal.append(port[0] + " " + port[1] + " " + port[2])
-        self.settings["ports"] = returnVal
         return returnVal
 
 class Commands():
     def __init__(self):
+        self.pid = []
         pass
+    
+    def startRecord(self, playlist, filename = "Title", SelectedPort = "20:0", BPM = 120 ):
+        files = os.listdir( os.getcwd() + "/playlists/" + playlist + "/")
+        count = 0
+        while True:
+            if not os.path.exists( os.getcwd() + "/playlists/" + playlist + "/" + filename + "-" + str(count+1) + ".mid"):
+                filename = filename + "-" + str(count+1)
+                break
+            else:
+                count += 1
+        self.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/arecordmidi", "-p" , SelectedPort, "-b", str(BPM), os.getcwd() + "/playlists/" + playlist + "/" + filename + ".mid"])
 
-    def releaseAll(self, SelectedPort):
+    def stopRecord(self):
+        self.killAllProcesses()
+
+
+    def releaseAll(self, SelectedPort = "20:0"):
         self.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c", os.getcwd() + "/empty.mid"])
         self.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c", os.getcwd() + "/empty.mid"])
 
@@ -118,6 +194,7 @@ class Commands():
 import os
 import json
 import subprocess
+import os.path, time
 class Song:
     
     def __init__(self, fileLocation, playlist, systemSettings, autoWriteData = False):
@@ -162,7 +239,7 @@ class Song:
         return self.songData["length"]
 
     def getBPM(self):
-        return self.songData["BPM"]
+        return self.songData["bpm"]
 
     def getUserBPM(self):
         return self.songData["userBPM"]
@@ -177,7 +254,7 @@ class Song:
         return self.songData["location"]
 
     def getStars(self):
-        return self.songData["stars"]
+        return str(self.songData["stars"])
 
     def setStars(self, stars):
         if stars < 0 or stars > 5:
@@ -203,21 +280,53 @@ class Song:
 
     
     def getMidiInfo(self, fileLocation):
-        midiFile = mido.MidiFile(self.cwd + '/playlists/' + self.playlist + "/" + fileLocation)
-        mid = []
+        file = self.cwd + '/playlists/' + self.playlist + "/" + fileLocation
         
-        midiinfo = Commands().runCommand([self.cwd + '/metamidi/metamidi', '-l' , self.cwd + '/playlists/' + self.playlist + "/" + fileLocation])
+        midiFile = mido.MidiFile(file)
+        mid = []
+        midiinfo = Commands().runCommand([self.cwd + '/metamidi/metamidi', '-l' , file])
         midiinfo = midiinfo.split(';')
+        LastModifiedTime = self.parseDate(file)
         try:
-            return fileLocation, '2020-04-20', "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), fileLocation, "4",0,"1"
+            return fileLocation, LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), fileLocation, "4",0,"1"
         except:
-            print(midiFile)
+            print("DSFAASDDDDDDDDDDDDDDDDDDDDDDD")
+
+    def parseDate(self,fileLocation):
+        temp = time.ctime(os.path.getmtime(fileLocation))
+        temp = temp.split()
+        if(temp[1] == "Jan"):
+            temp[1] = "01"
+        if(temp[1] == "Feb"):
+            temp[1] = "02"
+        if(temp[1] == "Mar"):
+            temp[1] = "03"
+        if(temp[1] == "Apr"):
+            temp[1] = "04"
+        if(temp[1] == "May"):
+            temp[1] = "05"
+        if(temp[1] == "Jun"):
+            temp[1] = "06"
+        if(temp[1] == "Jul"):
+            temp[1] = "07"
+        if(temp[1] == "Aug"):
+            temp[1] = "08"
+        if(temp[1] == "Sep"):
+            temp[1] = "09"
+        if(temp[1] == "Oct"):
+            temp[1] = "10"
+        if(temp[1] == "Nov"):
+            temp[1] = "11"
+        if(temp[1] == "Dec"):
+            temp[1] = "12"
+        
+        return(temp[4] + "-"+ str(temp[1])+ "-" +temp[2])
 
     def writeData(self):
         with open(os.getcwd() + "/playlists/" + self.playlist + "/" + self.getLocation() + ".json", 'w') as json_file:
             json.dump(self.songData, json_file)
 
-    def getDict(self):
+    def getDicot(self):
         return self.songData
 
     def getList(self):
@@ -249,7 +358,7 @@ class Playlist():
 
 
     def set_current_song(self, title):
-        for i in len(self.SongList):
+        for i in range(len(self.SongList)):
             if self.SongList[i].getTitle() == title:
                 self.currentSong = i
 
@@ -286,32 +395,54 @@ class Playlist():
         return TempSongList
 
     
-
-
-
-
 class Player():
-    def __init__(self, playlist_title="midirec-default"):
+    def __init__(self):
         self.playing = False
         self.repeat = False
         self.shuffle = False
-        self.playlist_title = playlist_title
         self.SysInter = SystemInterface()
+        self.playlist_title = self.SysInter.getCurrentPlaylist()
+
         self.timer = Timer()
-        self.playlist = Playlist(playlist_title, self.SysInter)
+        self.playlist = Playlist(self.playlist_title, self.SysInter)
         self.commands = Commands()
+
+
+    def startRecording(self, bpm = 120):
+        self.commands.startRecord(self.playlist_title,BPM=bpm)
+        self.timer.resetTimer()
+        self.timer.startTimer()
+
+    def stopRecording(self):
+        self.commands.stopRecord()
+        self.timer.stopTimer()
+        return self.timer.getTimeElapsed()
+
 
     def play(self, song=0):
         if song == 0:
             CurrentSong = self.playlist.get_current_song()
         else:
+            listlist = self.playlist.get_song_list_list()
+            for i in range(len(listlist)):
+                #print(listlist[i][0],song)
+
+                if listlist[i][0] == song:
+                    self.playlist.set_current_song_index(i)
+                    break
             self.playlist.set_current_song(song)
-            CurrentSong = song
+            CurrentSong = self.playlist.get_current_song()
         self.timer.resetTimer()
         self.commands.killAllProcesses()
         self.commands.releaseAll()
         self.commands.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c", os.getcwd() + "/playlists/" + self.playlist_title + "/" + CurrentSong.getTitle()])
         self.timer.startTimer()
+
+    def changePlaylist(self,playlist_title):
+        self.SysInter.setCurrentPlaylist(playlist_title)
+        self.playlist_title = playlist_title
+        self.playlist = Playlist(playlist_title, self.SysInter)
+        self.SysInter.writeData()
 
     def changeTime(self, time, time2):
 
@@ -323,16 +454,22 @@ class Player():
         self.commands.releaseAll()
         self.timer.resetTimer()
         self.timer.addToTimer(numSecondsIntoSong)
+
+
+        self.commands.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c","-s " + str(numSecondsIntoSong),"-b " + str(BPM), os.getcwd() + "/playlists/" + self.SysInter.getCurrentPlaylist() + "/" + self.playlist.get_current_song().getLocation()])
         self.timer.startTimer()
 
-        self.commands.runCommandNoOutput([os.getcwd + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.settings.getCurrentPortNumber(), "-c","-s " + str(numSecondsIntoSong),"-b " + BPM, cwd + "/playlists/" + currentPlaylist + "/" + masterList[CurrentSongPos][0]])
-
-
     def pause(self):
-        pass
+        self.commands.killAllProcesses()
+        self.timer.stopTimer()
+        self.commands.releaseAll(self.SysInter.getCurrentPortNumber())
+        self.SysInter.getCurrentPortNumber()
+
 
     def resume(self):
-        pass
+        self.commands.killAllProcesses()
+        self.commands.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c","-s " + str(self.timer.getTimeElapsed()),"-b " + str(self.playlist.get_current_song().getBPM()), os.getcwd() + "/playlists/" + self.SysInter.getCurrentPlaylist() + "/" + self.playlist.get_current_song().getLocation()])
+        self.timer.startTimer()
 
     def next(self):
         if self.playlist.get_current_song_index() + 1 == len(self.playlist.SongList):
@@ -377,26 +514,38 @@ def timerTest():
         print("PASS")
     else:
         print("FAIL")
+    timer.startTimer()
+    print(timer.getTimeElapsed())
 
     timer.resetTimer()
     if (int(timer.getTimeElapsed()) == 0):
         print("PASS")
     else:
         print("FAIL", timer.getTimeElapsed())
+    
+    timer.addToTimer(5)
+    timer.startTimer()
+    timer.stopTimer()
+    if (int(timer.getTimeElapsed()) == 5):
+        print("PASS")
+    else:
+        print("FAIL", timer.getTimeElapsed())
+    
 
 def playlistTest():
     playlist = Playlist("midirec-default", SystemInterface())
     print(playlist.get_song_list()[0].getLocation())
 
 def playerTest():
-    player = Player("Chopin")
+    player = Player()
     print(player.playlist.get_current_song().getTitle())
     player.next()
     print(player.playlist.get_current_song().getTitle())
-    print(player.playlist.get_song_list_dict())
+    #print(player.playlist.get_song_list_dict())
     
 def SystemInterfaceTest():
     sysInter = SystemInterface()
+    sysInter.writeData()
 
 if __name__ == "__main__":
     SystemInterfaceTest()

@@ -34,8 +34,6 @@
 	var timerStatus = 0; // 1=playing ; 2=recording ; so that we update elapsed/duration and progress bar
 	
 	var updateIn = 0; // count down timer so we update entire interface content every N/10 seconds
-	
-	
 	// ==================== SHORTCUT FUNCTIONS : ====================
 	
 	// Shortcut to function getElementById
@@ -71,16 +69,22 @@
 				}else if( json[obj][0] == 'PLAYLIST' ){
 					updatePlayList(json[obj]);
 					updateIn = 30;
+
+
+				}else if( json[obj][0] == 'BYID' ){
+					updateIDs(json[obj]);
+					updateIn = 30;
+					
 					
 				// PUT SOME CONTENT IN THE OVERLAY & OPEN IT :
 				}else if( json[obj][0] == 'OVERLAY' ){
-
-					openOverlay(data[1]);
+					console.log("ASDASDFASDFASDF")
+					openOverlay(json[obj][1]);
 					
 				// PUT AN ELEMENT IN FOCUS (typically input when renaming) :
 				}else if( json[obj][0] == 'FOCUS' ){
 					
-					var ele = document.getElementById(data[1]);
+					var ele = document.getElementById(json[obj][1]);
 					if(ele) setTimeout( function(e){ e.focus() }, 100, ele );
 					
 				// OPEN THE KEYBOARD TO TYPE IN AN INPUT :
@@ -239,6 +243,22 @@
 		}
 	}
 	
+
+	function updateIDs(data){
+		if (data[1].length > 0)
+		{
+			for (var i = 0; i < data[1].length; i++)
+			{
+				var id = data[1][i][0];
+				var cls = data[1][i][1];
+				var ele = gebi(id);
+				if(ele && ele.className != cls)
+				{
+					ele.className = cls;
+				}
+			}
+		}
+	}
 	
 	// ==================== UPDATE INTERFACE FROM AJAX RESPONSE : ====================
 	
