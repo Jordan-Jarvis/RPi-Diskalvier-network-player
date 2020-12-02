@@ -32,9 +32,30 @@ def setMidiIn(midi):
 
 @APP.route('/ajax/setplaylist/<playlist>')
 def setplaylist(playlist):
-    player.changePlaylist(playlist)
-    player.commands.killAllProcesses()
-    return Response(json.dumps((get_int(1),0)),  mimetype='application/json')
+    if playlist == "CREATE":
+        response = []
+        response.append("OVERLAY")   # 0 position
+        sendMenu = '''<input id=ren_input type=text value="file"><a class=button style="top:10%;left:75%;width:20%" onclick="var title = gebi('ren_input').value.toLowerCase().replace(/[^a-z\d]+/g,'-'); sendRequest('ren-confirm/selected_file/'+name,this)">NAME</a>'''
+        sendMenu = '''<input id=ren_plylst type=text value="file"><a class=button style="top:10%;left:75%;width:20%" onclick="var title = gebi('ren_plylst').value.toLowerCase().replace(/[^a-z\d]+/g,'-'); sendRequest('ren-confirm/'+title,this)">CREATE</a>'''
+        response.append(sendMenu) # 1 position
+
+        idToChange = []
+        idToChange.append(["kbd","visible"])
+        #idToChange.append(["ovr",""])
+        response2 = []
+        response2.append("BYID")   # 0 position
+        response2.append(idToChange) # 1 position
+        response3 = []
+        response3.append("KEYBOARD")
+        response3.append("ren_plylst")
+        response4 = []
+        response4.append("FOCUS")   # 0 position
+        response4.append("ren_plylst") # 1 position
+        return Response(json.dumps((response,response4,response4, response3)),  mimetype='application/json')
+    else:
+        player.changePlaylist(playlist)
+        player.commands.killAllProcesses()
+        return Response(json.dumps((get_int(1),0)),  mimetype='application/json')
 
     return get_int(0)
 
@@ -73,7 +94,7 @@ def stopRecording():
     idToChange.append(["but_rec", ""])
     idToChange.append(["but_ply", ""])
     idToChange.append(["rating","star" + "4"])
-    idToChange.append(["but_con","dis"])
+    idToChange.append(["but_con",""])
     idToChange.append(["but_rep","ena"])
     response = []
     response.append("PLAYER")   # 0 position
@@ -84,10 +105,23 @@ def stopRecording():
     response.append(0)         # 5 position
     response.append(0)          # 6 position
     response.append(0)          # 7 position
+    response2 = response ## change this, i was just being lazy
+    response = []
+    response.append("OVERLAY")   # 0 position
+    sendMenu = '''<input id=ren_input type=text value="file"><a class=button style="top:10%;left:75%;width:20%" onclick="var title = gebi('ren_input').value.toLowerCase().replace(/[^a-z\d]+/g,'-'); sendRequest('ren-confirm/selected_file/'+name,this)">NAME</a>'''
+    sendMenu = '''<input id=ren_input type=text value="file"><a class=button style="top:10%;left:75%;width:20%" onclick="var title = gebi('ren_input').value.toLowerCase().replace(/[^a-z\d]+/g,'-'); sendRequest('ren-confirm/'+title,this)">RENAME</a>'''
+    response.append(sendMenu) # 1 position
 
-    return Response(json.dumps((response,0)),  mimetype='application/json')
-
-    return flask.send_file("static/")
+    idToChange = []
+    idToChange.append(["kbd","visible"])
+    #idToChange.append(["ovr",""])
+    response3 = []
+    response3.append("KEYBOARD")
+    response3.append("ren_input")
+    response4 = []
+    response4.append("FOCUS")   # 0 position
+    response4.append("ren_input") # 1 position
+    return Response(json.dumps((response,response2,response4, response3)),  mimetype='application/json')
 
 @APP.route('/static/<name>/')
 def staticFile(name):
@@ -210,7 +244,8 @@ def sendMenu():
         if folder == player.SysInter.getCurrentPlaylist():
             sendMenu = sendMenu + ''' selected="selected"'''
         sendMenu = sendMenu + '>' + folder + '''</option>'''
-    
+    sendMenu = sendMenu + '''<option value="''' + "CREATE" + '"'
+    sendMenu = sendMenu + '>' + "CREATE NEW PLAYLIST" + '''</option>'''
     sendMenu = sendMenu + '''</div><a id=menu_shut onclick="sendRequest('shut-open',this)">SHUTDOWN</a><div id=menu_shut_info>Or close Chrome kiosk with ALT+F4</div>'''
 
     response = []
@@ -223,15 +258,23 @@ def sendMenu():
 def renameFile():
     response = []
     response.append("OVERLAY")   # 0 position
-    sendMenu = '''<input id=plylst_input type=text value=""><a class=button style="top:10%;left:75%;width:20%" onclick="var name = gebi('plylst_input').value.toLowerCase().replace(/[^a-z\d]+/g,'-'); sendRequest('newlist-make/'+name,this)">CREATE</a>'''
+    sendMenu = '''<input id=ren_input type=text value="file"><a class=button style="top:10%;left:75%;width:20%" onclick="var title = gebi('ren_input').value.toLowerCase().replace(/[^a-z\d]+/g,'-'); sendRequest('ren-confirm/selected_file/'+name,this)">NAME</a>'''
+    sendMenu = '''<input id=ren_input type=text value="file"><a class=button style="top:10%;left:75%;width:20%" onclick="var title = gebi('ren_input').value.toLowerCase().replace(/[^a-z\d]+/g,'-'); sendRequest('ren-confirm/'+title,this)">RENAME</a>'''
     response.append(sendMenu) # 1 position
+
+    idToChange = []
+    idToChange.append(["kbd","visible"])
+    #idToChange.append(["ovr",""])
     response2 = []
-    response2.append("FOCUS")
-    response2.append("plylst_input")
+    response2.append("BYID")   # 0 position
+    response2.append(idToChange) # 1 position
     response3 = []
     response3.append("KEYBOARD")
-    response3.append("plylst_input")
-    return Response(json.dumps((response,response2,response3)),  mimetype='application/json')
+    response3.append("ren_input")
+    response4 = []
+    response4.append("FOCUS")   # 0 position
+    response4.append("ren_input") # 1 position
+    return Response(json.dumps((response,response4,response4, response3)),  mimetype='application/json')
 
     
     response = APP.response_class(
@@ -246,7 +289,51 @@ def get_int(returnArray = 0):
     masterList.insert(0,'PLAYLIST')
     if (returnArray == 1):
         return masterList
-    return Response(json.dumps((masterList,0)),  mimetype='application/json')
+    response = []
+    CurrentSong = player.playlist.get_current_song()
+    currentPercent = int(player.timer.getTimeElapsed())/int(CurrentSong.getLength())
+    idToChange = []
+    response = []
+    idToChange.append(["prog", currentPercent])
+    idToChange.append(["rating","star" + CurrentSong.getStars()])
+
+    if player.getStatus() == "playing":
+        idToChange.append(["but_rec", ""])
+        idToChange.append(["but_ply", "pause"])
+        idToChange.append(["but_con","ena"])
+        idToChange.append(["but_rep","ena"])
+
+        response.append("PLAYER")   # 0 position
+        response.append(idToChange) # 1 position
+        response.append(5)         # 2 position
+        player.timer.stopTimer()
+        response.append(player.timer.getTimeElapsed())      # 3 position
+        player.timer.startTimer()
+        response.append(CurrentSong.getBPM())        # 4 position
+        response.append(CurrentSong.getLength())         # 5 position
+        response.append(1)          # 6 position player status, 0 stopped, 1 playing, 2 recording
+        response.append(0)          # 7 position
+        
+    if player.getStatus() == "paused":
+        idToChange.append(["but_rec", ""])
+        idToChange.append(["but_ply", "play"])
+        idToChange.append(["but_con","ena"])
+        idToChange.append(["but_rep","ena"])
+
+        response.append("PLAYER")   # 0 position
+        response.append(idToChange) # 1 position
+        response.append(5)         # 2 position
+        response.append(player.timer.getTimeElapsed())      # 3 position
+        response.append(CurrentSong.getBPM())        # 4 position
+        response.append(CurrentSong.getLength())         # 5 position
+        response.append(0)          # 6 position player status, 0 stopped, 1 playing, 2 recording
+        response.append(0)          # 7 position
+
+
+
+
+
+    return Response(json.dumps((masterList,response)),  mimetype='application/json')
 
 @APP.route('/ajax/play-start/')
 def play_start():
@@ -332,4 +419,4 @@ def escapeSpaces(stringInput):
 if __name__ == '__main__':
     main()
     APP.debug=True
-    APP.run()
+    APP.run(debug=True, port=8901, host='0.0.0.0')

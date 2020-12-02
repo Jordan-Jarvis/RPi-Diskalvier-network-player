@@ -55,89 +55,47 @@
 		// Parse an AJAX response and call other functions to update the interface
 		// r : response body
 
-		try{
-			var json = JSON.parse(r); 
-			for (obj in json)
-			{
-				console.log(json[obj][0])
-				// PLAYER STATUS :
-				if( json[obj][0] == 'PLAYER' ){
-					updatePlayer(json[obj]);
-					updateIn = 30;
-					
-				// PLAYLIST CONTENT :
-				}else if( json[obj][0] == 'PLAYLIST' ){
-					updatePlayList(json[obj]);
-					updateIn = 30;
 
-
-				}else if( json[obj][0] == 'BYID' ){
-					updateIDs(json[obj]);
-					updateIn = 30;
-					
-					
-				// PUT SOME CONTENT IN THE OVERLAY & OPEN IT :
-				}else if( json[obj][0] == 'OVERLAY' ){
-					console.log("ASDASDFASDFASDF")
-					openOverlay(json[obj][1]);
-					
-				// PUT AN ELEMENT IN FOCUS (typically input when renaming) :
-				}else if( json[obj][0] == 'FOCUS' ){
-					
-					var ele = document.getElementById(json[obj][1]);
-					if(ele) setTimeout( function(e){ e.focus() }, 100, ele );
-					
-				// OPEN THE KEYBOARD TO TYPE IN AN INPUT :
-				}else if( json[obj][0] == 'KEYBOARD' ){
-					
-					setTimeout( function(id){ openKeyboard(id) }, 100, data[1] );
-					
-				}
-			}
-		}
-		catch{
-
-			var lines = r.split('\n');
-
-			for( var i=0, imax=lines.length ; i<imax ; i++ ){
+		var json = JSON.parse(r); 
+		for (obj in json)
+		{
+			console.log(json[obj][0])
+			// PLAYER STATUS :
+			if( json[obj][0] == 'PLAYER' ){
+				updatePlayer(json[obj]);
+				updateIn = 30;
 				
-				var data = lines[i].split('\t');
-				console.log(lines);
-				// PLAYER STATUS :
-				if( data[0] == 'PLAYER' ){
-					updatePlayer(data);
-					updateIn = 30;
-					
-				// PLAYLIST CONTENT :
-				}else if( data[0] == 'PLAYLIST' ){
-					updatePlayList(data);
-					updateIn = 30;
-					
-				// PUT SOME CONTENT IN THE OVERLAY & OPEN IT :
-				}else if( data[0] == 'OVERLAY' ){
-					console.log(lines[1]);
-					openOverlay(lines[1]);
-					
-				// PUT AN ELEMENT IN FOCUS (typically input when renaming) :
-				}else if( data[0] == 'FOCUS' ){
-					
-					var ele = gebi(data[1]);
-					if(ele) setTimeout( function(e){ e.focus() }, 100, ele );
-					
-				// OPEN THE KEYBOARD TO TYPE IN AN INPUT :
-				}else if( data[0] == 'KEYBOARD' ){
-					
-					setTimeout( function(id){ openKeyboard(id) }, 100, data[1] );
-					
-				}
+			// PLAYLIST CONTENT :
+			}else if( json[obj][0] == 'PLAYLIST' ){
+				updatePlayList(json[obj]);
+				updateIn = 30;
+
+
+			}else if( json[obj][0] == 'BYID' ){
+				updateIDs(json[obj]);
+				updateIn = 30;
+				
+				
+			// PUT SOME CONTENT IN THE OVERLAY & OPEN IT :
+			}else if( json[obj][0] == 'OVERLAY' ){
+				console.log("ASDASDFASDFASDF")
+				openOverlay(json[obj][1]);
+				
+			// PUT AN ELEMENT IN FOCUS (typically input when renaming) :
+			}else if( json[obj][0] == 'FOCUS' ){
+				
+				var ele = document.getElementById(json[obj][1]);
+				if(ele) setTimeout( function(e){ e.focus() }, 100, ele );
+				
+			// OPEN THE KEYBOARD TO TYPE IN AN INPUT :
+			}else if( json[obj][0] == 'KEYBOARD' ){
+				
+				setTimeout( function(id){ openKeyboard(id) }, 100, json[obj][1] );
 				
 			}
 		}
-		// Each line wants to update a certain thing in the interface (e.g. player status, progress bar, playlist)
-
-			
-			
-		}
+	// Each line wants to update a certain thing in the interface (e.g. player status, progress bar, playlist)
+	}
 		
 	
 	// Create an AJAX object
@@ -593,7 +551,7 @@
 		kbdInp.selectionStart = pos;
 		kbdInp.selectionEnd = pos;
 		kbdInp.focus();
-		
+		console.log("ahlsdkfjkjasdfhlkjashdflk")
 	}
 	
 	function playerTimer(){

@@ -145,15 +145,7 @@ class Commands():
         pass
     
     def startRecord(self, playlist, filename = "Title", SelectedPort = "20:0", BPM = 120 ):
-        files = os.listdir( os.getcwd() + "/playlists/" + playlist + "/")
-        count = 0
-        while True:
-            if not os.path.exists( os.getcwd() + "/playlists/" + playlist + "/" + filename + "-" + str(count+1) + ".mid"):
-                filename = filename + "-" + str(count+1)
-                break
-            else:
-                count += 1
-        self.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/arecordmidi", "-p" , SelectedPort, "-b", str(BPM), os.getcwd() + "/playlists/" + playlist + "/" + filename + ".mid"])
+        self.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/arecordmidi", "-p" , SelectedPort, "-b", str(BPM), "./" + filename + ".mid"])
 
     def stopRecord(self):
         self.killAllProcesses()
@@ -343,7 +335,11 @@ class Playlist():
         self.SongList = []
         for item in songs:
             if item.endswith(".mid") or item.endswith(".MID"):
-                self.SongList.append(Song(item,location, systemSettings, autoWriteData=True))
+                try:
+                    self.SongList.append(Song(item,location, systemSettings, autoWriteData=True))
+                except:
+                    print("the following song is not readable and will be skipped:")
+                    print(item)
         
         
     def refresh(self):
@@ -397,7 +393,8 @@ class Playlist():
     
 class Player():
     def __init__(self):
-        self.playing = False
+        self.status = {}
+        self.status = "stopped" # stopped, recording, paused, playing
         self.repeat = False
         self.shuffle = False
         self.SysInter = SystemInterface()
@@ -408,18 +405,22 @@ class Player():
         self.commands = Commands()
 
 
-    def startRecording(self, bpm = 120):
-        self.commands.startRecord(self.playlist_title,BPM=bpm)
+    def startRecording(self, bpm):
+        
+        self.status = "recording"
+        self.commands.startRecord(self.playlist_title,BPM=bpm, SelectedPort = self.SysInter.getCurrentInPort())
         self.timer.resetTimer()
         self.timer.startTimer()
 
     def stopRecording(self):
+        self.status = "stopped"
         self.commands.stopRecord()
         self.timer.stopTimer()
         return self.timer.getTimeElapsed()
 
 
     def play(self, song=0):
+        self.status = "playing"
         if song == 0:
             CurrentSong = self.playlist.get_current_song()
         else:
@@ -439,13 +440,14 @@ class Player():
         self.timer.startTimer()
 
     def changePlaylist(self,playlist_title):
+        self.stop()
+        self.status = "stopped"
         self.SysInter.setCurrentPlaylist(playlist_title)
         self.playlist_title = playlist_title
         self.playlist = Playlist(playlist_title, self.SysInter)
         self.SysInter.writeData()
 
     def changeTime(self, time, time2):
-
         currentSong = self.playlist.get_current_song()
         currentPercent = int(time)/int(time2)
         numSecondsIntoSong = int(currentPercent * currentSong.getLength())
@@ -459,7 +461,11 @@ class Player():
         self.commands.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c","-s " + str(numSecondsIntoSong),"-b " + str(BPM), os.getcwd() + "/playlists/" + self.SysInter.getCurrentPlaylist() + "/" + self.playlist.get_current_song().getLocation()])
         self.timer.startTimer()
 
+    def stop(self):
+        pass
+
     def pause(self):
+        self.status = "paused"
         self.commands.killAllProcesses()
         self.timer.stopTimer()
         self.commands.releaseAll(self.SysInter.getCurrentPortNumber())
@@ -467,18 +473,23 @@ class Player():
 
 
     def resume(self):
+        self.status = "playing"
         self.commands.killAllProcesses()
         self.commands.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c","-s " + str(self.timer.getTimeElapsed()),"-b " + str(self.playlist.get_current_song().getBPM()), os.getcwd() + "/playlists/" + self.SysInter.getCurrentPlaylist() + "/" + self.playlist.get_current_song().getLocation()])
         self.timer.startTimer()
 
     def next(self):
+        self.status = "playing"
         if self.playlist.get_current_song_index() + 1 == len(self.playlist.SongList):
             self.playlist.set_current_song_index(0)
         else:
             self.playlist.set_current_song_index(self.playlist.get_current_song_index() + 1)
 
-    def status(self):
-        pass
+    def getStatus(self):
+        return self.status
+
+    def setStatus(self, status):
+        self.status = status
 
 
 
@@ -531,6 +542,7 @@ def timerTest():
     else:
         print("FAIL", timer.getTimeElapsed())
     
+    
 
 def playlistTest():
     playlist = Playlist("midirec-default", SystemInterface())
@@ -548,7 +560,10 @@ def SystemInterfaceTest():
     sysInter.writeData()
 
 if __name__ == "__main__":
+
     SystemInterfaceTest()
     playerTest()
     playlistTest()
     timerTest()
+    print("OVERLAY\t<input id=ren_input type=text value=\"")
+    print("\"><a class=button style=\"top:10%;left:75%;width:20%\" onclick=\"var title = gebi('ren_input').value.toLowerCase().replace(/[^a-z\\d]+/g,'-'); sendRequest('ren-confirm/$status->{selected_file}/'+title,this)\">RENAME</a>\nFOCUS\tren_input\nKEYBOARD\tren_input\n")
