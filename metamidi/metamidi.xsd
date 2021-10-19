@@ -1,0 +1,114 @@
+<!--
+Copyright (c) 2009 Jose M. Iñesta <inesta@dlsi.ua.es>
+Copyright (c) 2009 Pedro J. Ponce de León <pierre@dlsi.ua.es>
+Copyright (c) 2009 Carlos Pérez Sancho <cperez@dlsi.ua.es>
+Copyright (c) 2009 Antonio Pertusa Ibáñez <pertusa@dlsi.ua.es>
+Copyright (c) 2009 David Rizo Valero <drizo@dlsi.ua.es>
+Copyright (c) 2009 Tomás Pérez García <tperez@dlsi.ua.es>
+Copyright (c) 2009 Universitat d'Alacant
+-->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema targetNamespace="http://www.dlsi.ua.es/metamidi" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:mmd="http://www.dlsi.ua.es/metamidi">
+	<xsd:complexType name="MidiFileType">
+		<xsd:all>
+			<xsd:element name="external" type="mmd:ExternalType"></xsd:element>
+			<xsd:element name="global" type="mmd:GlobalType"></xsd:element>
+			<xsd:element name="tracks" type="mmd:TracksType"></xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+
+	<xsd:element name="midifile" type="mmd:MidiFileType"></xsd:element>
+
+	<xsd:simpleType name = "MidiType">
+	    <xsd:annotation>
+	      <xsd:documentation>Type 0 files have all data on ONE time ordered track. Type 1 have multiple tracks. Type 2 are pattern files</xsd:documentation>
+	    </xsd:annotation>
+	    <xsd:restriction base = "xsd:string">
+	      <xsd:enumeration value = "0"/>
+	      <xsd:enumeration value = "1"/>
+	      <xsd:enumeration value = "2"/>
+	    </xsd:restriction>
+  	</xsd:simpleType>
+  
+	<xsd:complexType name="ExternalType">
+			<xsd:sequence><xsd:element name="comment" type="xsd:string"  minOccurs="0" maxOccurs="unbounded"></xsd:element></xsd:sequence>			
+			<xsd:attribute name="name" type="xsd:string" use = "required"></xsd:attribute> 	 <!-- File name -->
+			<xsd:attribute name="size" type="xsd:integer" use = "required"></xsd:attribute> <!-- File size in bytes -->
+			<xsd:attribute name="numtracks" type="xsd:integer" use = "required"></xsd:attribute> <!-- Number of tracks -->
+			<xsd:attribute name="resolution" type="xsd:integer" use = "required"></xsd:attribute> <!-- MIDI resolution, e.g: 120, 480, ... -->
+			<xsd:attribute name="midiformat" type="mmd:MidiType" use = "required"></xsd:attribute>			
+	</xsd:complexType>
+
+	<xsd:simpleType name = "MeterType">
+	    <xsd:annotation>
+	      <xsd:documentation>Any of the keys</xsd:documentation>
+	    </xsd:annotation>
+		<xsd:restriction base = "xsd:string">
+            	<xsd:pattern value = "[0-9]+\/[0-9]+"/> <!-- e.g 4/4, 3/4, 3/8 -->
+         </xsd:restriction>
+  	</xsd:simpleType>	
+	
+	<xsd:simpleType name = "KeyType">
+	    <xsd:annotation>
+	      <xsd:documentation>Any of the keys</xsd:documentation>
+	    </xsd:annotation>
+		<xsd:restriction base = "xsd:string">
+            	<xsd:pattern value = "[ABCDEFG][b#]?(maj|min)"/> <!-- maj stands for Major, min for minor. e.g Abmaj -->
+         </xsd:restriction>
+  	</xsd:simpleType>	
+  	
+	<xsd:simpleType name = "PercusionType">
+	    <xsd:annotation>
+	      <xsd:documentation>-1 if empty, 1 for instruments usually found in a drum kit, 2 for latin percussion, and 3 for other percussion elements </xsd:documentation>
+	    </xsd:annotation>
+	    <xsd:restriction base = "xsd:string">
+		  <xsd:enumeration value = "-1"/>
+	      <xsd:enumeration value = "1"/>
+	      <xsd:enumeration value = "2"/>
+	      <xsd:enumeration value = "3"/>
+	    </xsd:restriction>
+  	</xsd:simpleType>  	
+
+	<xsd:complexType name="GlobalType">
+			<xsd:sequence><xsd:element name="comment" type="xsd:string"  minOccurs="0" maxOccurs="unbounded"></xsd:element></xsd:sequence>			
+			<xsd:attribute name="tempo" type="xsd:integer" default="60"></xsd:attribute> <!-- Initial tempo -->
+		<xsd:attribute name="meter" type="mmd:MeterType"  default="4/4"></xsd:attribute> <!-- Initial meter -->
+			<xsd:attribute name="tonality" type="mmd:KeyType" default="Cmaj"></xsd:attribute> <!-- Initial key/tonality -->
+			<xsd:attribute name="tempoChanges" type="xsd:integer"  default = "0"></xsd:attribute> <!-- Number of tempo changes --> 
+			<xsd:attribute name="meterChanges" type="xsd:integer" default = "0"></xsd:attribute> <!-- Number of meter changes -->			
+			<xsd:attribute name="keyChanges" type="xsd:integer" default = "0"></xsd:attribute> <!-- Number of key signature changes -->
+			<xsd:attribute name="instruments" type="xsd:string" use = "required"></xsd:attribute> <!--  TO BE DEFINED -->
+			<xsd:attribute name="percusion" type="mmd:PercusionType" use = "required"></xsd:attribute> <!-- Percusion -->
+			<xsd:attribute name="duration" type="xsd:float" use = "required"></xsd:attribute> <!-- Duration in seconds -->			
+			<xsd:attribute name="hasSysEx" type="xsd:boolean" use = "required"></xsd:attribute>	<!-- Boolean value, true if there is any system exclusive content -->		
+			<xsd:attribute name="text" type="xsd:string"></xsd:attribute>	<!-- Text on master track 0 -->		
+	</xsd:complexType>
+
+	<xsd:complexType name="TrackType">
+			<xsd:sequence><xsd:element name="comment" type="xsd:string"  minOccurs="0" maxOccurs="unbounded"></xsd:element></xsd:sequence>			
+			<xsd:attribute name="number" type="xsd:integer"  use = "required"></xsd:attribute> <!-- midi track number, starting from 1 -->
+			<xsd:attribute name="name" type="xsd:string"></xsd:attribute> <!-- name of midi track -->
+			<xsd:attribute name="channel" type="xsd:integer"></xsd:attribute> <!-- MIDI channel: the most repeated among the events in the track -->
+			<xsd:attribute name="duration" type="xsd:integer"  use = "required"></xsd:attribute> <!-- Duration in ticks -->
+			<xsd:attribute name="sounding" type="xsd:integer"  use = "required"></xsd:attribute> <!-- Number of ticks where there is anything sounding -->
+			<xsd:attribute name="soundingRate" type="xsd:float"  use = "required"></xsd:attribute> <!-- sounding / duration -->
+			<xsd:attribute name="durationRate" type="xsd:float"  use = "required"></xsd:attribute> <!-- duration / (global duration in ticks) -->
+			<xsd:attribute name="polyphonyRate" type="xsd:float"   use = "required"></xsd:attribute>	<!--  Number of ticks where there is polyphony divided by duration -->		
+			<xsd:attribute name="maxSimultaneousNotes" type="xsd:integer" use = "required"></xsd:attribute> <!-- maximum number of simultaneous notes -->
+			<xsd:attribute name="avgSimultaneousNotes" type="xsd:float" use = "required"></xsd:attribute> <!-- average number of simultaneous notes: sum(notes in non silence ticks) / (non silence ticks) -->
+			<xsd:attribute name="pitchRange" type="xsd:integer" use = "required"></xsd:attribute> <!--(Maximum pitch) - (minimum pich)  -->			 
+			<xsd:attribute name="modulations" type="xsd:integer"  default = "0"></xsd:attribute> <!-- Number of modulations, if not present a 0 value is assumed  -->
+			<xsd:attribute name="afterTouches" type="xsd:integer"  default = "0"></xsd:attribute> <!-- Number of after-touches, if not present a 0 value is assumed  -->
+			<xsd:attribute name="pitchBends" type="xsd:integer"  default = "0"></xsd:attribute> <!-- Number of pitch-bends, if not present a 0 value is assumed  -->
+			<xsd:attribute name="programChanges" type="xsd:integer"  default = "0"></xsd:attribute> <!-- Number of program-changes, if not present a 0 value is assumed -->		
+			<xsd:attribute name="text" type="xsd:string"></xsd:attribute>
+	</xsd:complexType>
+
+    <xsd:complexType name="TracksType">				
+		<xsd:sequence>
+			<xsd:element name="track" type="mmd:TrackType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+
+</xsd:schema>
