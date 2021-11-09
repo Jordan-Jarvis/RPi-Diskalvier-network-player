@@ -1,19 +1,19 @@
 import os
 import json
 import os.path, time
+import mido
 class Song:
     
-    def __init__(self, fileLocation, playlist, systemSettings, autoWriteData = False):
+    def __init__(self, fileLocation, autoWriteData = False):
         
         self.autoWriteData = autoWriteData
         self.songData = {}
         self.newData = False
         self.cwd = os.getcwd()
-        self.playlist = playlist
-        self.systemInter = systemSettings
 
-        if os.path.exists(os.getcwd() + "/playlists/" + playlist + "/" + fileLocation + ".json"):
-            with open(os.getcwd() + "/playlists/" + playlist + "/" + fileLocation + ".json") as f:
+
+        if os.path.exists(fileLocation):
+            with open(fileLocation + ".json") as f:
                 self.songData = json.load(f)
         else:
             self.songData['title'],self.songData["date"],self.songData["time"], self.songData["length"],self.songData["bpm"],self.songData["userBPM"], self.songData["location"],self.songData["stars"],self.songData["playing"], self.songData["disk"] = self.getMidiInfo(fileLocation)
@@ -85,8 +85,8 @@ class Song:
         self.newData = newData
 
     
-    def getMidiInfo(self, fileLocation):
-        file = self.cwd + '/playlists/' + self.playlist + "/" + fileLocation
+    def getMidiInfo(self, file):
+        
         
         midiFile = mido.MidiFile(file)
         mid = []
@@ -94,7 +94,7 @@ class Song:
         midiinfo = midiinfo.split(';')
         LastModifiedTime = self.parseDate(file)
         try:
-            return fileLocation, LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), fileLocation, "4",0,"1"
+            return file, LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), file, "4",0,"1"
         except:
             print("DSFAASDDDDDDDDDDDDDDDDDDDDDDD")
 
@@ -129,7 +129,7 @@ class Song:
         return(temp[4] + "-"+ str(temp[1])+ "-" +temp[2])
 
     def writeData(self):
-        with open(os.getcwd() + "/playlists/" + self.playlist + "/" + self.getLocation() + ".json", 'w') as json_file:
+        with open(self.getLocation() + ".json", 'w') as json_file:
             json.dump(self.songData, json_file)
 
     def getDicot(self):

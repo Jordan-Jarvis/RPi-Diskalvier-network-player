@@ -1,11 +1,15 @@
+import atexit
 import subprocess
 import os
 import mido
 import json
 import time
 import pprint
+import timer
+import Song
 from math import floor
-
+from multiprocessing import Process, Manager, Value
+manager = Manager()
 from mido import messages
 class Settings:
     def __init__(self, settingsfile, all_settings):
@@ -20,7 +24,6 @@ class Settings:
         self.ensure_existence(all_settings)
 
     def __getitem__(self, idx):
-
         return self.dictionary[idx]
 
     def __setitem__(self, idx, setting):
@@ -29,6 +32,7 @@ class Settings:
 
     def __str__(self):
         return(pprint.pformat(self.dictionary))
+
     def ensure_existence(self,vars):
         for setting in vars:
             if type(setting) == str:
@@ -51,20 +55,26 @@ class midiinterface:
     
 
     def __init__(self,backend, settingsfile = 'midisettings.json'):
-        self.pid = []
+        self.status = manager.dict()
+        self.pid = ''
         all_settings=[
             'inPort',
             'outPort',
             'backend',
             {'playbackspeed':0.0},
-            {'releaseallmidi':'empty.mid'}
+            {'releaseallmidi':'Title.mid'},
+            {"end":"end"}
         ]
         self.settings = Settings(settingsfile,all_settings)
         if backend == 'mido':
             self.backend = backend
         ports = self.getPorts()
         print(self.settings)
+        self.msgs = []
         
+    def set_current_song(self, song):
+        pass
+    
     def getPorts(self):
         """Check for indeces created in version 5 and upgrade them to version 6 by reindexing them.
     
@@ -83,17 +93,6 @@ class midiinterface:
             returns['outputs'] = mido.get_output_names()
             returns['inputs'] = mido.get_input_names()
             return returns
-        else:
-            ports = Commands.Commands().runCommand(['aplaymidi', '--list'])
-            ports = ports.split('\n')
-            ports.pop(0)
-            returnVal = []
-            for port in ports:
-                port = port.split()
-                if len(port) < 3:
-                    continue
-                returnVal.append(port[0] + " " + port[1] + " " + port[2])
-            return {'outputs':returnVal,'inputs':returnVal}
 
     def selectInPort(self, port = 0):
         try:
@@ -126,10 +125,6 @@ class midiinterface:
                 if self.stop == True:
                     break
                 port.send(msg)
-        else:
-            print("arecordmidi","--port",self.settings.inPort,"-b", str(BPM),"./" + filename + ".mid")
-            self.runCommandNoOutput(["arecordmidi", "--port" , SelectedPort, "-b", str(BPM),"./" + filename + ".mid"])
-
 
     def stopRecord(self):
 
@@ -155,16 +150,44 @@ class midiinterface:
             else:
                 yield msg
 
-    def playFile(self, file, speed=1.0):
+    def playFile(self, file, offset=0, speed=1.0, status = ""):
+        print("Playing")
+        print(type(status))
+        
         if self.backend == 'mido':
             msgs = []
+
             if type(file) == str:
                 msgs = self.load_midi(file)
             else:
                 msgs = file
             port = mido.open_output(self.settings['outPort'])
+            status['status'] = 'playing'
+            time.sleep(offset)
             for msg in self.playmido(msgs, speed):
+                while status['status'] != 'playing':
+                  time.sleep(0.2)  
+                  print("NOT PLAYING")
                 port.send(msg)
+            if file != self.settings['releaseallmidi']:
+                self.releaseAll()
+
+    def play(self, file, offset=0,speed=0):
+        if type(self.pid) != str:
+          if self.pid.is_alive() == True:
+            self.pid.terminate()
+        self.status['status'] = "playing"
+        self.pid = Process(target=self.playFile, args=(file, offset, speed, self.status))
+        self.pid.start()
+        print(self.pid)
+        
+    def resume(self):
+        self.status['status'] = "playing"
+
+
+    def pause(self):
+        self.status['status'] = 'paused'
+        self.releaseAll()
 
     def scanalyzeme(self, msgs):
         songlen = 0.0
@@ -201,6 +224,7 @@ class midiinterface:
             #time.sleep(msg.time)
             if not msg.is_meta:
                 msgs.append(msg) # load all messages into ram
+        self.msgs = msgs
         return msgs
         
 
@@ -208,29 +232,51 @@ class midiinterface:
         songlen = 0.0
         if type(msgs) == str:
             filen = msgs
-            msgs = self.load_midi(msgs)
+            self.load_midi(msgs)
+        else:
+            self.msgs = msgs
         nums = [float(x) for x in timestamps.keys()]
         absolute_difference_function = lambda list_value : abs(list_value - float(time))
         closest_value = str(min(nums, key=absolute_difference_function))
 
-        return {'index':timestamps[str(closest_value)],'messages':msgs[int(timestamps[str(closest_value)][0]):],'offset':(float(closest_value) - float(time))}
-
+        return {'index':timestamps[str(closest_value)],'messages':self.msgs[int(timestamps[str(closest_value)][0]):],'offset':(float(closest_value) - float(time))}
     def releaseAll(self):
-        if type(self.settings['releaseallmidi']) == str:
-            self.settings['releaseallmidi'] = self.scanalyzeme(self.settings['releaseallmidi']) # read file into memory
-        self.playFile(self.settings['releaseallmidi'])
+        stat = {}
+        self.playFile(self.settings['releaseallmidi'], status=stat)
 
+import argparse
 
 if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(description='Restore all snapshots for the specified index within the given timeframe (years)')
+
+    parser.add_argument('--clear',
+                        type=str,
+                        default='',
+                        help='Required, api key for imperva')
+    args = parser.parse_args()
+
     p = midiinterface('mido')
-    print(p.getPorts())
-    # print(p.settings)
+    atexit.register(p.releaseAll)
+        
     tmp = p.scanalyzeme('RebeccaTest.mid')
-    song = p.seek('RebeccaTest.mid', tmp, 60)
+    song = p.seek('RebeccaTest.mid', tmp, 20)
     tmp = p.getPorts()
     p.selectOutPort(tmp['outputs'][2])
+    if args.clear != "":
+        p.releaseAll()
+        exit()
+
     print(p.settings['outPort'])
-    p.playFile(song['messages'])
-    p.releaseAll()
+    p.play(song['messages'],song['offset'])
+    time.sleep(10)
+    p.pause()
+    time.sleep(10)
+    p.resume()
+    time.sleep(3)
+    p.seek()
+    while p.pid.is_alive() == True:
+        time.sleep(0.2)
+
     
     

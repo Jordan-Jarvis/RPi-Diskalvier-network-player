@@ -105,3 +105,20 @@ class SystemInterface():
                 continue
             returnVal.append(port[0] + " " + port[1] + " " + port[2])
         return returnVal
+import subprocess 
+def runCommand(self, command):
+    process = subprocess.Popen(command,
+    stdout=subprocess.PIPE, 
+    stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    stdout, stderr
+    encoding = 'utf-8'
+    #print(stdout)
+    stdout = stdout.decode('utf-8',errors="ignore")
+    return stdout
+
+def runCommandNoOutput(self, command, track = 1):
+    process = subprocess.Popen(command)
+    if track == 1:
+        self.pid.append(process.pid)
+    return process.pid
