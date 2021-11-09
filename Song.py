@@ -2,6 +2,7 @@ import os
 import json
 import os.path, time
 import mido
+import SystemInterface
 class Song:
     
     def __init__(self, fileLocation, autoWriteData = False):
@@ -90,7 +91,7 @@ class Song:
         
         midiFile = mido.MidiFile(file)
         mid = []
-        midiinfo = Commands().runCommand([self.cwd + '/metamidi/metamidi', '-l' , file])
+        midiinfo = SystemInterface.runCommand([self.cwd + '/metamidi/metamidi', '-l' , file])
         midiinfo = midiinfo.split(';')
         LastModifiedTime = self.parseDate(file)
         try:
