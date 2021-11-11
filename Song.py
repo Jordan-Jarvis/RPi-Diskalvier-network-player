@@ -13,6 +13,7 @@ class Song:
         self.cwd = os.getcwd()
 
 
+
         if os.path.exists(fileLocation):
             with open(fileLocation + ".json") as f:
                 self.songData = json.load(f)
@@ -21,6 +22,18 @@ class Song:
             self.newData = True
             if self.autoWriteData:
                 self.writeData()
+                
+    def getTimings(self):
+        return self.songData['timings']
+    
+    def setTimings(self, timings):
+        self.songData['timings'] = timings
+
+    def get_messages(self):
+        return self.messages
+
+    def set_messages(self, msgs):
+        self.messages = msgs
 
     def getTitle(self):
         return self.songData["title"]

@@ -73,7 +73,9 @@ class midiinterface:
         self.msgs = []
         
     def set_current_song(self, song):
-        pass
+        self.song = song
+        self.scanalyzeme(self.song.getLocation())
+
     
     def getPorts(self):
         """Check for indeces created in version 5 and upgrade them to version 6 by reindexing them.
@@ -131,12 +133,12 @@ class midiinterface:
         self.killAllProcesses(1)
 
 
-    def playmido(self, midofile, meta_messages=False, speed=1.0):
+    def playmido(self, meta_messages=False, speed=1.0):
         """Taken from mido library"""
         start_time = time.time()
         input_time = 0.0
 
-        for msg in midofile:
+        for msg in self.song.get_messages():
             input_time += msg.time
 
             playback_time = time.time() - start_time
@@ -240,6 +242,7 @@ class midiinterface:
         closest_value = str(min(nums, key=absolute_difference_function))
 
         return {'index':timestamps[str(closest_value)],'messages':self.msgs[int(timestamps[str(closest_value)][0]):],'offset':(float(closest_value) - float(time))}
+
     def releaseAll(self):
         stat = {}
         self.playFile(self.settings['releaseallmidi'], status=stat)
