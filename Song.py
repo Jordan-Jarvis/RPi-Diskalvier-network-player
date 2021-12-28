@@ -25,6 +25,9 @@ class Song:
             self.newData = True
             if self.autoWriteData:
                 self.writeData()
+    
+    def toJSON(self):
+        return json.dumps(self.songData)
                 
     def getTimings(self):
         return self.songData['timings']

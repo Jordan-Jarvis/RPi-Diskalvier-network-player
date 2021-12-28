@@ -73,6 +73,7 @@ class midiinterface:
         self.msgs = []
         self.status['input_time'] = 0.0
         self.status['playbacktime'] = 0.0
+        self.status['status']= "stopped"
 
         
     def set_current_song(self, song):
@@ -148,7 +149,10 @@ class midiinterface:
 
     def playFile(self, file, offset=0, speed=1.0, status = "", startingindex = 0):
         print("Playing")
+
         self.outport = mido.open_output(self.settings['outPort'])
+        self.outport.reset()
+
         if self.backend == 'mido':
             msgs = []
             self.song = file
@@ -166,7 +170,10 @@ class midiinterface:
             if isinstance(offset, list):
                 status['input_time'] = offset[1]
                 offset = offset[1]-offset[2]
-            time.sleep(offset)
+            try:
+                time.sleep(offset)
+            except ValueError:
+                pass
             status['start_time'] = time.time() - (offset + status['input_time'])
             looping = 0
             for msg in self.song.get_messages()[startingindex:]:
@@ -206,6 +213,8 @@ class midiinterface:
 
 
             self.outport.reset()
+            status['status'] = 'played'
+
 
     def play(self, offset=0,speed=1, startingindex = 0):
         if type(self.pid) != str:
@@ -215,6 +224,7 @@ class midiinterface:
         self.pid = Process(target=self.playFile, args=(self.song, offset, speed, self.status, startingindex))
         self.pid.start()
         print(self.pid)
+        
         
     def resume(self):
         self.status['status'] = "playing"
@@ -230,7 +240,12 @@ class midiinterface:
             return(self.status['playbacktime'])
 
     def stop(self):
-        self.status["status"] = "stopping"
+        self.status['playbacktime']=0.0
+        if self.status["status"] != "playing":
+            self.status["status"] = "stopped"
+            return
+        if self.status["status"] == "playing":
+            self.status["status"] = "stopping"
         while self.status["status"] != "stopped":
             time.sleep(0.1)
 
@@ -295,13 +310,6 @@ class midiinterface:
         timestamps[key].append(seconds)
         return timestamps[key]
         
-        print(timestamps)
-        nums = [float(x) for x in timestamps.keys()]
-        absolute_difference_function = lambda list_value : abs(list_value - float(time))
-        closest_value = str(min(nums, key=absolute_difference_function))
-
-        return {'index':timestamps[str(closest_value)],'messages':self.msgs[int(timestamps[str(closest_value)][0]):],'offset':(float(closest_value) - float(time))}
-
     def releaseAll(self):
         try:
             self.outport
