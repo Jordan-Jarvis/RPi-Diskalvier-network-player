@@ -3,6 +3,9 @@ import json
 import os.path, time
 import mido
 import SystemInterface
+import sys
+print(sys.platform)
+Systeminterface = SystemInterface.SystemInterface()
 class Song:
     
     def __init__(self, fileLocation, autoWriteData = False):
@@ -14,7 +17,7 @@ class Song:
 
 
 
-        if os.path.exists(fileLocation):
+        if os.path.exists(fileLocation + '.json'):
             with open(fileLocation + ".json") as f:
                 self.songData = json.load(f)
         else:
@@ -104,14 +107,13 @@ class Song:
         
         midiFile = mido.MidiFile(file)
         mid = []
-        midiinfo = SystemInterface.runCommand([self.cwd + '/metamidi/metamidi', '-l' , file])
+        midiinfo = Systeminterface.runCommand([self.cwd + '/metamidi/metamidi.exe', '-l' , file])
         midiinfo = midiinfo.split(';')
         LastModifiedTime = self.parseDate(file)
         try:
             return file, LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), file, "4",0,"1"
         except:
-            print("DSFAASDDDDDDDDDDDDDDDDDDDDDDD")
-
+            print(midiinfo)
     def parseDate(self,fileLocation):
         temp = time.ctime(os.path.getmtime(fileLocation))
         temp = temp.split()
@@ -148,6 +150,16 @@ class Song:
 
     def getDicot(self):
         return self.songData
+
+    def setTimestamps(self, timestamps):
+        self.timestamps = timestamps
+    
+    def getTimestamps(self):
+        try:
+            self.timestamps
+            return self.timestamps
+        except:
+            return None
 
     def getList(self):
         return [self.songData['title'],self.songData["date"],self.songData["time"], self.songData["length"],self.songData["bpm"],self.songData["userBPM"], self.songData["location"],self.songData["stars"],self.songData["playing"], self.songData["disk"]]

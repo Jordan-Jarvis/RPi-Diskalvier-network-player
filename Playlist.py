@@ -1,6 +1,6 @@
 import os
 import json
-import mpserver.midi.Song
+import Song
 class Playlist():
     def __init__(self,location, systemSettings):
         self.currentSong = -1
@@ -14,7 +14,7 @@ class Playlist():
         for item in songs:
             if item.endswith(".mid") or item.endswith(".MID"):
                 try:
-                    self.SongList.append(Song.Song(item,location, self.systemSettings, autoWriteData=True))
+                    self.SongList.append(Song.Song(f"{location}/{item}", autoWriteData=True))
                 except:
                     print("the following song is not readable and will be skipped:")
                     print(item)

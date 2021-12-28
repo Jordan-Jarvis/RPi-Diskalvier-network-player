@@ -1,90 +1,124 @@
+import os
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
 import Playlist
-import Scraper
 import timer
 import time
+import midiinterface
+import SystemInterface
 import os
-import mido
+from Song import Song
+class MusicQueue():
+    def __init__(self):
+        pass
+        self.songs = []
+        self.position = 0
+        self.shuffle = 0
 
-class Player(Backend):
-    def __init__(self, SystemInterface):
-        self.status = {}
-        self.status = "stopped" # stopped, recording, paused, playing
+    def addSong(self, song):
+        if isinstance(song, Song):
+            self.songs.append(song)
+
+    def addSongs(self, songlist):
+        if isinstance(songlist, list):
+            try:
+                if isinstance(songlist[0], Song):
+                    self.songs.extend(songlist)
+            except IndexError:
+                pass
+
+    def removeSong(self, song=0, index=0):
+        if isinstance(song, Song):
+            index = self.songs.index(song)
+            self.songs.remove(Song)
+            try:
+                if index < self.position:
+                    self.position -= 1
+            except IndexError:
+                pass
+        else:
+            self.songs.pop(index)
+    
+    def reset(self):
+        self.songs  = []
+        
+    def getCurrentSong(self):
+        try:
+            return self.songs[self.position]
+        except IndexError:
+            try:
+                self.position  = 0
+                return self.position
+            except IndexError:
+                return 0
+
+    
+
+    def setCurrentSongIndex(self, index):
+        if index > -1 and index <=len(self.songs):
+            self.position= index
+
+    def nextSong(self):
+        if len(self.songs) > 0:
+            try:
+                self.position += 1
+                self.songs[self.position]
+
+            except IndexError:
+                self.position = 0
+    
+    def previousSong(self):
+        if len(self.songs) > 0:
+            try:
+                self.position -= 1
+                self.songs[self.position]
+
+            except IndexError:
+                self.position = len(self.songs)
+    
+
+
+class Player(midiinterface.midiinterface):
+    def __init__(self):
+        super().__init__(backend="mido",settingsfile = 'midisettings.json')
         self.repeat = False
         self.shuffle = False
         self.playNext = True
         self.SysInter = SystemInterface.SystemInterface()
+        self.queue = MusicQueue()
         self.playlist_title = self.SysInter.getCurrentPlaylist()
-
         self.timer = timer.Timer()
-        self.playlist = Playlist.Playlist(self.playlist_title, self.SysInter)
-        self.commands = Commands.Commands()
+        self.playlist = Playlist.Playlist(f"music/{self.playlist_title}", self.SysInter)
+        self.queue.addSongs(self.playlist.get_song_list())
         self.song = 0
 
-    def get_time(self):
-        self.timer.stopTimer()
-        temp = int(self.timer.getTimeElapsed())
-        self.timer.startTimer()
-        return temp
 
-    def get_position(self):
-        if self.song == 0:
-            return 0
-        return self.get_time()/self.song.duration
-        
 
     def startRecording(self, bpm):
         
-        self.status = "recording"
         print(self.SysInter.getCurrentInPortNumber())
         self.commands.startRecord(BPM=bpm, SelectedPort = self.SysInter.getCurrentInPortNumber())
         self.timer.resetTimer()
         self.timer.startTimer()
 
     def stopRecording(self):
-        self.status = "stopped"
         self.commands.stopRecord()
         self.timer.stopTimer()
         timeel = self.timer.getTimeElapsed()
 
         return timeel
 
-    def play(self, song=0):
-        if self.backend == 'mido':
-            port = mido.open_output(self.settings.outPort)
-            for msg in mido.MidiFile(filename).play():
-                port.send(msg)
-        self.song = song
-        self.status = "playing"
-        self.timer.resetTimer()
-        self.commands.killAllProcesses()
-        self.commands.releaseAll(self.SysInter.getCurrentPortNumber())
-        
-        # self.commands.runCommandNoOutput([os.getcwd() + "/mpserver/midi/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c", os.getcwd() + "/" + self.song.filepath])
-        self.timer.startTimer()
+    def getplaylist(self): 
+        return self.playlist
 
     def changePlaylist(self,playlist_title):
         self.stop()
-        self.status = "stopped"
         self.SysInter.setCurrentPlaylist(playlist_title)
         self.playlist_title = playlist_title
         self.playlist = Playlist(playlist_title, self.SysInter)
         self.SysInter.writeData()
 
-    def changeTime(self, currentPercent):
-        currentSong = self.song
-        numSecondsIntoSong = int(currentPercent * currentSong.duration)
-        BPM = currentSong.songData["userBPM"]
-        self.commands.killAllProcesses()
-        self.commands.releaseAll(self.SysInter.getCurrentPortNumber())
-        self.timer.resetTimer()
-        self.timer.addToTimer(numSecondsIntoSong)
-
-
-        self.commands.runCommandNoOutput([os.getcwd() + "/mpserver/midi/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c","-s " + str(numSecondsIntoSong),"-b " + str(BPM), os.getcwd() + "/" + self.song.filepath])
-        self.timer.startTimer()
-
-    def stop(self):
-        pass
 
     def getContinue(self):
         return self.playNext
@@ -98,47 +132,26 @@ class Player(Backend):
     def setContinue(self, truefalse):
         self.playNext = truefalse
 
-    def pause(self):
-        if self.status == "paused":
-            return
-        self.status = "paused"
-        self.commands.killAllProcesses()
-        self.timer.stopTimer()
-        self.commands.releaseAll(self.SysInter.getCurrentPortNumber())
-        time.sleep(0.5)
-        self.commands.releaseAll(self.SysInter.getCurrentPortNumber())
-        time.sleep(0.5)
-        self.commands.releaseAll(self.SysInter.getCurrentPortNumber())
-
-        self.SysInter.getCurrentPortNumber()
-
-
     def resume(self):
-        self.status = "playing"
         self.commands.killAllProcesses()
         self.commands.runCommandNoOutput([os.getcwd() + "/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , self.SysInter.getCurrentPortNumber(), "-c","-s " + str(self.timer.getTimeElapsed()),"-b " + str(self.playlist.get_current_song().getBPM()), os.getcwd() + "/playlists/" + self.SysInter.getCurrentPlaylist() + "/" + self.playlist.get_current_song().getLocation()])
         self.timer.startTimer()
 
     def next(self):
-        self.status = "playing"
-        if self.playlist.get_current_song_index() + 1 == len(self.playlist.SongList):
-            self.playlist.set_current_song_index(0)
-        else:
-            self.playlist.set_current_song_index(self.playlist.get_current_song_index() + 1)
+        self.stop()
+        self.queue.nextSong()
+        self.set_current_song(self.queue.getCurrentSong())
 
-    def getStatus(self, asInt = 0):
-        if asInt == 0:
-            return self.status
-        else:
-            if self.status == "playing":
-                return 1
-            if self.status == "paused":
-                return 2
-            if self.status == "stopped":
-                return 0
-            if self.status == "recording":
-                return 3
 
-    def setStatus(self, status):
-        self.status = status
 
+if __name__ == "__main__":
+    print("testing")
+    p = Player()
+    print(p.playlist.get_current_song())
+    p.set_current_song(p.queue.getCurrentSong())
+    p.play(speed=1)
+    time.sleep(9)
+    # p.play(speed= 2)
+    p.next()
+    p.next()
+    time.sleep(30)

@@ -1,5 +1,6 @@
 import subprocess
 import os
+import sys
 class Commands():
     def __init__(self):
         self.pid = []
@@ -19,6 +20,9 @@ class Commands():
         self.runCommandNoOutput([os.getcwd() + "/mpserver/midi/alsa-utils-1.2.2/seq/aplaymidi/aplaymidi", "-p" , SelectedPort, "-c", os.getcwd() + "/mpserver/midi/empty.mid"])
 
     def runCommand(self, command):
+        if sys.platform == "win32":
+            command[0]  = command[0]  + ".exe"
+            print(command)
         process = subprocess.Popen(command,
             stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE)

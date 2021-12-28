@@ -9,8 +9,8 @@ import timer
 import Song
 from math import floor
 from multiprocessing import Process, Manager, Value
-manager = Manager()
 from mido import messages
+
 class Settings:
     def __init__(self, settingsfile, all_settings):
         self.dictionary = {}
@@ -52,17 +52,17 @@ class NoPortsFound(Exception):
 class InvalidPort(Exception):
     pass
 class midiinterface:
-    
+
 
     def __init__(self,backend, settingsfile = 'midisettings.json'):
+        manager = Manager()
         self.status = manager.dict()
         self.pid = ''
         all_settings=[
             'inPort',
             'outPort',
             'backend',
-            {'playbackspeed':0.0},
-            {'releaseallmidi':'Title.mid'},
+            {'playbackspeed':1.0},
             {"end":"end"}
         ]
         self.settings = Settings(settingsfile,all_settings)
@@ -71,10 +71,20 @@ class midiinterface:
         ports = self.getPorts()
         print(self.settings)
         self.msgs = []
+        self.status['input_time'] = 0.0
+        self.status['playbacktime'] = 0.0
+
         
     def set_current_song(self, song):
         self.song = song
-        self.scanalyzeme(self.song.getLocation())
+        self.msgs = []
+        self.status['input_time'] = 0.0
+        self.status['playbacktime'] = 0.0
+
+        if self.song.getTimestamps() == None:
+            self.song.setTimestamps(self.scanalyzeme(self.song.getLocation()))
+        self.song.set_messages(self.load_midi(self.song.getLocation()))
+        
 
     
     def getPorts(self):
@@ -133,53 +143,76 @@ class midiinterface:
         self.killAllProcesses(1)
 
 
-    def playmido(self, meta_messages=False, speed=1.0):
-        """Taken from mido library"""
-        start_time = time.time()
-        input_time = 0.0
 
-        for msg in self.song.get_messages():
-            input_time += msg.time
 
-            playback_time = time.time() - start_time
-            duration_to_next_event = (input_time - playback_time) * 1.0
 
-            if duration_to_next_event > 0.0:
-                time.sleep(duration_to_next_event)
-
-            if isinstance(msg, mido.MetaMessage) and not meta_messages:
-                continue
-            else:
-                yield msg
-
-    def playFile(self, file, offset=0, speed=1.0, status = ""):
+    def playFile(self, file, offset=0, speed=1.0, status = "", startingindex = 0):
         print("Playing")
-        print(type(status))
-        
+        self.outport = mido.open_output(self.settings['outPort'])
         if self.backend == 'mido':
             msgs = []
+            self.song = file
+            # if type(file) == str:
+            #     msgs = self.load_midi(file)
+            # elif type(file) == Song:
+                
+            # else:
+            #     msgs = file
 
-            if type(file) == str:
-                msgs = self.load_midi(file)
-            else:
-                msgs = file
-            port = mido.open_output(self.settings['outPort'])
             status['status'] = 'playing'
+            status['playback_time'] = 0.0
+            status['start_time']  = 0.0
+            status['input_time'] = 0.0
+            if isinstance(offset, list):
+                status['input_time'] = offset[1]
+                offset = offset[1]-offset[2]
             time.sleep(offset)
-            for msg in self.playmido(msgs, speed):
-                while status['status'] != 'playing':
-                  time.sleep(0.2)  
-                  print("NOT PLAYING")
-                port.send(msg)
-            if file != self.settings['releaseallmidi']:
-                self.releaseAll()
+            status['start_time'] = time.time() - (offset + status['input_time'])
+            looping = 0
+            for msg in self.song.get_messages()[startingindex:]:
+                status['input_time'] += msg.time * (1/speed) 
 
-    def play(self, file, offset=0,speed=0):
+                status['playback_time'] = time.time() - status['start_time']
+                duration_to_next_event = (status['input_time'] - status['playback_time']) 
+                while status['status'] != 'playing':
+                    looping = 1
+                    if status['status']  == 'pausing':
+                        status['playbacktime'] = status["playback_time"]
+                        status['status'] = 'paused'
+                        self.outport.reset()
+                    elif status['status'] == 'paused':
+
+                        time.sleep(.2)
+                            
+                    if status['status'] == 'stopping':
+                        self.outport.close()
+                        status['status'] = 'stopped'
+                        return
+                    print("NOT PLAYING")
+
+                if looping == 1:
+                    looping = 0
+                    status['playback_time'] = status['playbacktime']
+                    status['start_time'] = time.time() - status['playback_time']
+                if duration_to_next_event > 0.0:
+                    time.sleep(duration_to_next_event)
+
+                if isinstance(msg, mido.MetaMessage):
+                    continue
+                else:
+                    self.outport.send(msg)
+                    
+
+
+
+            self.outport.reset()
+
+    def play(self, offset=0,speed=1, startingindex = 0):
         if type(self.pid) != str:
           if self.pid.is_alive() == True:
             self.pid.terminate()
         self.status['status'] = "playing"
-        self.pid = Process(target=self.playFile, args=(file, offset, speed, self.status))
+        self.pid = Process(target=self.playFile, args=(self.song, offset, speed, self.status, startingindex))
         self.pid.start()
         print(self.pid)
         
@@ -188,8 +221,20 @@ class midiinterface:
 
 
     def pause(self):
-        self.status['status'] = 'paused'
-        self.releaseAll()
+        self.status['status'] = 'pausing'
+
+    def get_playback_time(self):
+        if self.status['status'] == "playing":
+            return(time.time() - self.status['start_time'])
+        else:
+            return(self.status['playbacktime'])
+
+    def stop(self):
+        self.status["status"] = "stopping"
+        while self.status["status"] != "stopped":
+            time.sleep(0.1)
+
+
 
     def scanalyzeme(self, msgs):
         songlen = 0.0
@@ -197,25 +242,22 @@ class midiinterface:
             msgs = self.load_midi(msgs)
 
         tmplist = {}
+        x=0
+        songlen = 0
+        for k in range(0,int(floor(self.song.getLength()))* 2):
+            j = k/2
+            try:
+                while songlen < j:
+                    songlen += msgs[x].time
+                    x += 1
+                tmplist[str(j)] = [x, songlen]
+            except IndexError:
+                break
+
         for i, msg in enumerate(msgs):
             songlen += msg.time
-            timestamps = []
-            if (songlen - floor(songlen)) < 0.2:
-                if str(floor(songlen)) in tmplist.keys():
-                    pass
-                else:
-                    tmplist[str(float(floor(songlen)))] = [i,songlen]
 
-            elif (songlen - floor(songlen)) < 0.75 and (songlen - floor(songlen)) > 0.4:
-                if str(floor(songlen) + 0.5) in tmplist.keys():
-                    pass
-                else:
-                    tmplist[str(floor(songlen) + 0.5)] = [i,songlen]
-            elif (songlen - floor(songlen)) > 0.9:
-                if str(floor(songlen) + 1) in tmplist.keys():
-                    pass
-                else:
-                    tmplist[str(float(floor(songlen)) + 1)] = [i,songlen]
+
         return tmplist
 
 
@@ -224,19 +266,36 @@ class midiinterface:
         print(filen)
         for msg in mido.MidiFile(filen):
             #time.sleep(msg.time)
+
             if not msg.is_meta:
                 msgs.append(msg) # load all messages into ram
         self.msgs = msgs
         return msgs
         
-
-    def seek(self, msgs, timestamps, time):
-        songlen = 0.0
-        if type(msgs) == str:
-            filen = msgs
-            self.load_midi(msgs)
-        else:
-            self.msgs = msgs
+    def seek(self, percent):
+        if percent > 1:
+            percent = 1
+        if percent < 0:
+            percent = 0
+        timestamps = self.song.getTimestamps()
+        songlen = self.song.getLength()
+        seconds = songlen * percent
+        print(seconds)
+        key = str(round(seconds*2)/2)
+        print(key)
+        while True:
+            if key  == "0.0":
+                return 0
+            try:
+                print(timestamps[key])
+                break
+            except:
+                print("Dictionary error! key out of range")
+                key = str(float(key)-0.5)
+        timestamps[key].append(seconds)
+        return timestamps[key]
+        
+        print(timestamps)
         nums = [float(x) for x in timestamps.keys()]
         absolute_difference_function = lambda list_value : abs(list_value - float(time))
         closest_value = str(min(nums, key=absolute_difference_function))
@@ -244,13 +303,18 @@ class midiinterface:
         return {'index':timestamps[str(closest_value)],'messages':self.msgs[int(timestamps[str(closest_value)][0]):],'offset':(float(closest_value) - float(time))}
 
     def releaseAll(self):
-        stat = {}
-        self.playFile(self.settings['releaseallmidi'], status=stat)
+        try:
+            self.outport
+        except:
+            self.outport = mido.open_output(self.settings['outPort'])
+
+        self.outport.close()
 
 import argparse
 
 if __name__ == '__main__':
-    
+    manager = Manager()
+
     parser = argparse.ArgumentParser(description='Restore all snapshots for the specified index within the given timeframe (years)')
 
     parser.add_argument('--clear',
@@ -261,25 +325,36 @@ if __name__ == '__main__':
 
     p = midiinterface('mido')
     atexit.register(p.releaseAll)
-        
-    tmp = p.scanalyzeme('RebeccaTest.mid')
-    song = p.seek('RebeccaTest.mid', tmp, 20)
+    rtest = Song.Song("RebeccaTest.mid")
+    
+    p.set_current_song(rtest)
     tmp = p.getPorts()
+    print(tmp)
     p.selectOutPort(tmp['outputs'][2])
     if args.clear != "":
         p.releaseAll()
         exit()
 
     print(p.settings['outPort'])
-    p.play(song['messages'],song['offset'])
-    time.sleep(10)
+    p.play()
+    time.sleep(4)
     p.pause()
-    time.sleep(10)
+    for val in range(3):
+        print(p.get_playback_time())
+        time.sleep(2)
+    print(p.get_playback_time())
+
     p.resume()
     time.sleep(3)
-    p.seek()
+    p.stop()
+    vals = p.seek(0.9)
+    print(vals)
+    p.play(offset = vals,startingindex=vals[0],speed= 0.3)
     while p.pid.is_alive() == True:
         time.sleep(0.2)
+        print(time.time() - p.status['start_time'] )
+
+
 
     
     
