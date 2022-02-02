@@ -12,6 +12,9 @@ Copyright (c) 2009 Universitat d'Alacant
 #include "tmidi.h"
 #include "define.h"
 
+int test(int test){
+	return(1);
+}
 
 char*
 extraerMetadatos(TMidi m)
@@ -373,9 +376,9 @@ EscribeLin(TMidi midi)
 
 
 
-int
-main(int argc, char **argv)
+char* main(int argc, char **argv)
 {
+	return("help");
 	int error, ok;
 	char* salida;
 	FILE *fout;
