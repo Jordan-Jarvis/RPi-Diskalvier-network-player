@@ -1,19 +1,16 @@
 import flask
-import mido
 from flask import Flask, request, send_from_directory, jsonify
 from flask import Response
 from flask import json
-import time
 import os
-from parseMidi import *
+from src.parseMidi import *
 import sys
 os.chdir(os.path.dirname(sys.argv[0]))
-import Player
+import src.Player as Player
 def main():
     global player 
     player = Player.Player()
-    pass
-import urllib.request
+
 def parseRequest(request):
     speed = request.args.get("speed")
     if request.args.get("speed") == None:
@@ -39,11 +36,6 @@ def staticFile(name):
     """
     return flask.send_file("static/" + name)
 
-
-
-
-
-
 @APP.route('/dl/<name>/')
 def download(name):
     """ Displays the page greats who ever comes to visit it.
@@ -68,9 +60,6 @@ def setPlaybackSpeed():
         speed = 1
     player.setPlaybackSpeed(float(speed))
     return Response(json.dumps({"return":"Success"}),  mimetype='application/json')
-
-
-
 
 @APP.route('/queue')
 def queue():
@@ -126,27 +115,7 @@ app = Flask(__name__, static_url_path='')
 def escapeSpaces(stringInput):
     return stringInput.replace(" ", "\\ ")
 
-
-# from apscheduler.scheduler import Scheduler 
- 
- 
-# sched = Scheduler() # Scheduler object 
-# sched.start() 
- 
-# def refreshData():
-#     checkSongEnd(player.playlist.get_current_song())
-
- 
-#add your job here 
-# sched.add_interval_job(refreshData,minutes=0.05) 
-
-import External
-from multiprocessing import Process
 if __name__ == '__main__':
     main()
     port = 8079
-    # get_int()
-    # p = Process(target=External.External, args=(port + 1, '0.0.0.0'))
-    # p.start()
-    #p.join()
     APP.run(port=port, host='0.0.0.0')
