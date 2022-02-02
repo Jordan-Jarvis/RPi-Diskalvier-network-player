@@ -57,7 +57,6 @@ class MusicQueue():
             except IndexError:
                 return 0
 
-    
 
     def setCurrentSongIndex(self, index):
         if index > -1 and index <=len(self.songs):
@@ -119,6 +118,7 @@ class Player(midiinterface.midiinterface):
         self.playlist = Playlist.Playlist(f"music/{self.playlist_title}", self.SysInter)
         self.queue.addSongs(self.playlist.get_song_list())
         self.song = 0
+        self.getLastSong()
 
     def refreshData(self):
         if self.status['status'] == 'played':
@@ -126,6 +126,10 @@ class Player(midiinterface.midiinterface):
                 print("PLAYING NEXT SONG")
                 self.next()
                 self.play()
+
+    def getLastSong(self):
+        self.queue.nextSong()
+        self.set_current_song(self.queue.getCurrentSong())
 
     def nowPlayingJSON(self):
         returndata = {}

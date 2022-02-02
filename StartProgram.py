@@ -14,6 +14,11 @@ def main():
     player = Player.Player()
     pass
 import urllib.request
+def parseRequest(request):
+    speed = request.args.get("speed")
+    if request.args.get("speed") == None:
+        speed = 1
+    return speed
 # Create the application.
 APP = flask.Flask(__name__)
 
@@ -55,6 +60,16 @@ def startSong(index):
     player.set_current_song(player.queue.getCurrentSong())
     player.play()
     return Response(player.nowPlayingJSON(),  mimetype='application/json')
+
+@APP.route('/playbackspeed')
+def setPlaybackSpeed():
+    speed = request.args.get("speed")
+    if speed == None:
+        speed = 1
+    player.setPlaybackSpeed(float(speed))
+    return Response(json.dumps({"return":"Success"}),  mimetype='application/json')
+
+
 
 
 @APP.route('/queue')

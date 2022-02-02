@@ -63,17 +63,23 @@ class midiinterface:
             'outPort',
             'backend',
             {'playbackspeed':1.0},
-            {"end":"end"}
+            {"end":"end"},
+            {'speed':1.0}
         ]
         self.settings = Settings(settingsfile,all_settings)
         if backend == 'mido':
             self.backend = backend
         ports = self.getPorts()
+        
         print(self.settings)
         self.msgs = []
         self.status['input_time'] = 0.0
         self.status['playbacktime'] = 0.0
         self.status['status']= "stopped"
+
+    def setPlaybackSpeed(self, speed):
+        speed = float(speed)
+        self.settings['speed'] = speed
 
         
     def set_current_song(self, song):
@@ -149,7 +155,6 @@ class midiinterface:
 
     def playFile(self, file, offset=0, speed=1.0, status = "", startingindex = 0):
         print("Playing")
-
         self.outport = mido.open_output(self.settings['outPort'])
         self.outport.reset()
 
@@ -178,6 +183,7 @@ class midiinterface:
             looping = 0
             for msg in self.song.get_messages()[startingindex:]:
                 status['input_time'] += msg.time * (1/speed) 
+                
 
                 status['playback_time'] = time.time() - status['start_time']
                 duration_to_next_event = (status['input_time'] - status['playback_time']) 
@@ -221,7 +227,7 @@ class midiinterface:
           if self.pid.is_alive() == True:
             self.pid.terminate()
         self.status['status'] = "playing"
-        self.pid = Process(target=self.playFile, args=(self.song, offset, speed, self.status, startingindex))
+        self.pid = Process(target=self.playFile, args=(self.song, offset, self.settings['speed'], self.status, startingindex))
         self.pid.start()
         print(self.pid)
         
