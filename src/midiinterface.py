@@ -19,9 +19,10 @@ class Settings:
             f = open(settingsfile)
             self.dictionary = json.load(f)
             f.close()
-        
+
 
         self.ensure_existence(all_settings)
+        self.save_settings()
 
     def __getitem__(self, idx):
         return self.dictionary[idx]
@@ -38,9 +39,10 @@ class Settings:
             if type(setting) == str:
                 if setting not in self.dictionary:
                     self.dictionary[setting] = 0
+
             if type(setting) == dict:
                 tmp = list(setting.keys())[0]
-                if tmp in vars:
+                if tmp in list(self.dictionary.keys()):
                     continue
                 self.dictionary[tmp] = setting[tmp]
 
@@ -62,7 +64,6 @@ class midiinterface:
             'inPort',
             'outPort',
             'backend',
-            {'playbackspeed':1.0},
             {"end":"end"},
             {'speed':1.0}
         ]
@@ -125,9 +126,10 @@ class midiinterface:
             raise NoPortsFound("Couldn't detect any ports")
 
     def selectOutPort(self,port = 0):
+        
         try:
             if port == 0:
-                self.settings.outPort = self.getPorts()['outputs'][0]
+                self.settings['outPort'] = self.getPorts()['outputs'][0]
             else:
                 if port not in self.getPorts()['outputs']:
                     raise InvalidPort(f"Port {port} does not exist in the list of outputs {self.getPorts()['outputs']}")
@@ -155,7 +157,13 @@ class midiinterface:
 
     def playFile(self, file, offset=0, speed=1.0, status = "", startingindex = 0):
         print("Playing")
-        self.outport = mido.open_output(self.settings['outPort'])
+        try:
+            self.outport = mido.open_output(self.settings['outPort'])
+        except:
+            self.selectOutPort()
+            self.outport = mido.open_output(self.settings['outPort'])
+
+            
         self.outport.reset()
 
         if self.backend == 'mido':
@@ -201,7 +209,6 @@ class midiinterface:
                         self.outport.close()
                         status['status'] = 'stopped'
                         return
-                    print("NOT PLAYING")
 
                 if looping == 1:
                     looping = 0

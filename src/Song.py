@@ -2,9 +2,9 @@ import os
 import json
 import os.path, time
 import mido
-from . import SystemInterface
 import sys
-print(sys.platform)
+platform = sys.platform
+from . import SystemInterface
 Systeminterface = SystemInterface.SystemInterface()
 class Song:
     
@@ -106,11 +106,14 @@ class Song:
 
     
     def getMidiInfo(self, file):
-        
+        if platform == 'windows':
+            ext = '.exe'
+        else:
+            ext = ""
         
         midiFile = mido.MidiFile(file)
         mid = []
-        midiinfo = Systeminterface.runCommand([self.cwd + '/metamidi/metamidi.exe', '-l' , file])
+        midiinfo = Systeminterface.runCommand([self.cwd + f'/metamidi/metamidi{ext}', '-l' , file])
         midiinfo = midiinfo.split(';')
         LastModifiedTime = self.parseDate(file)
         try:

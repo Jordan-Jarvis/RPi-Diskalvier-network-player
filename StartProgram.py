@@ -19,15 +19,6 @@ def parseRequest(request):
 # Create the application.
 APP = flask.Flask(__name__)
 
-@APP.route('/ajax/setconf/midiout/<midi>')
-def setMidiOut(midi):
-    player.SysInter.setCurrentPort(midi)
-    return Response(json.dumps((get_int(1),0)),  mimetype='application/json')
-    
-@APP.route('/ajax/setconf/midiin/<midi>')
-def setMidiIn(midi):
-    player.SysInter.setCurrentPort(midi)
-    return Response(json.dumps((get_int(1),0)),  mimetype='application/json')
 
 
 @APP.route('/static/<name>/')
@@ -102,6 +93,24 @@ def seek(percent):
     player.play(offset = vals,startingindex=vals[0])
     return player.nowPlayingJSON()
 
+@APP.route('/getPorts')
+def getPorts():
+    vals = player.getPorts()
+    return Response(json.dumps(vals),  mimetype='application/json')
+
+@APP.route('/setInPort')
+def setInPort():
+    vals = player.getPorts()
+    return Response(json.dumps(vals),  mimetype='application/json')
+
+@APP.route('/setOutPort')
+def setOutPort():
+    port = request.args.get("port")
+    if port == None:
+        port = 0
+    player.selectOutPort(port)
+    
+    return Response(json.dumps(player.settings['outPort']),  mimetype='application/json')
 
 @APP.route('/')
 def index():

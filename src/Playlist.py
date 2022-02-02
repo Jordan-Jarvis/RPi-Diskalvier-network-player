@@ -15,6 +15,9 @@ class Playlist():
             if item.endswith(".mid") or item.endswith(".MID"):
                 try:
                     self.SongList.append(Song.Song(f"{location}/{item}", autoWriteData=True))
+                    
+                except FileNotFoundError:
+                    raise FileNotFoundError("Could not find metamidi")
                 except:
                     print("the following song is not readable and will be skipped:")
                     print(item)
