@@ -4,3 +4,5 @@ python-rtmidi
 flask
 apscheduler
 tzlocal<3.0
+sqlalchemy
+psycopg2

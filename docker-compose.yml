@@ -8,3 +8,25 @@ services:
       - '/dev:/dev'
     privileged: true
     stop_signal: SIGINT
+    depends_on:
+      - database
+    restart: always
+    networks:
+      - local
+  database:
+    image: postgres
+    restart: always
+    networks:
+      - local
+    environment: 
+      POSTGRES_USER:      test
+      POSTGRES_PASSWORD:  keystore #${DATABASE_PASSWORD}
+      POSTGRES_DB:        rpimidi
+    ports:
+      - 5432:5432
+    volumes:
+      - ./database:/var/lib/postgresql/data
+
+networks:
+  local:
+    driver: bridge
