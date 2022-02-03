@@ -1,3 +1,6 @@
 mido
+setuptools
 python-rtmidi
-
+flask
+apscheduler
+tzlocal<3.0

@@ -5,7 +5,7 @@ from flask import json
 import os
 from src.parseMidi import *
 import sys
-os.chdir(os.path.dirname(sys.argv[0]))
+# os.chdir(os.path.dirname(sys.argv[0]))
 import src.Player as Player
 def main():
     global player 

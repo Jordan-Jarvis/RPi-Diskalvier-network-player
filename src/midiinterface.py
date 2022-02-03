@@ -77,10 +77,12 @@ class midiinterface:
         self.status['input_time'] = 0.0
         self.status['playbacktime'] = 0.0
         self.status['status']= "stopped"
+        self.status['speed'] = self.settings['speed']
 
     def setPlaybackSpeed(self, speed):
         speed = float(speed)
-        self.settings['speed'] = speed
+        self.status['speed'] = speed # current working one
+        self.settings['speed'] = speed # needs more implementation
 
         
     def set_current_song(self, song):
@@ -91,8 +93,8 @@ class midiinterface:
 
         if self.song.getTimestamps() == None:
             self.song.setTimestamps(self.scanalyzeme(self.song.getLocation()))
-        self.song.set_messages(self.load_midi(self.song.getLocation()))
-        
+        self.song.set_messages(self.load_midi(self.song.getLocation())) # causes memory leak, need to load this somewhere it can be dumped (or replaced) after song finishes. Potentially stored in DB as binary
+        # make this object keep messages, store the messages to DB inside of the song object
 
     
     def getPorts(self):
@@ -157,6 +159,7 @@ class midiinterface:
 
     def playFile(self, file, offset=0, speed=1.0, status = "", startingindex = 0):
         print("Playing")
+
         try:
             self.outport = mido.open_output(self.settings['outPort'])
         except:
@@ -190,7 +193,7 @@ class midiinterface:
             status['start_time'] = time.time() - (offset + status['input_time'])
             looping = 0
             for msg in self.song.get_messages()[startingindex:]:
-                status['input_time'] += msg.time * (1/speed) 
+                status['input_time'] += msg.time * (1/status['speed']) 
                 
 
                 status['playback_time'] = time.time() - status['start_time']

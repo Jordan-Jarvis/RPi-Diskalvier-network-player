@@ -1,0 +1,10 @@
+version: '3'
+services:
+  flask:
+    build: .
+    ports:
+      - "8079:8079"
+    volumes:
+      - '/dev:/dev'
+    privileged: true
+    stop_signal: SIGINT
