@@ -3,6 +3,7 @@ import json
 import os.path, time
 import mido
 import sys
+import psycopg2
 platform = sys.platform
 from . import SystemInterface
 Systeminterface = SystemInterface.SystemInterface()
@@ -25,6 +26,25 @@ class Song:
             self.newData = True
             if self.autoWriteData:
                 self.writeData()
+    
+    def save_to_db(self, db):
+        try:
+            db.autocommit = True
+            title=self.getTitle()
+            rating=self.getStars()
+            filelocation=self.getLocation()
+            BPM=self.getBPM()
+            len=self.getLength()
+            numplays=3
+            tmp = db.cursor()
+            sql= f"""INSERT INTO Song (title, rating, filelocation, BPM, len, numplays)
+            VALUES ('{title}', {rating}, '{filelocation}', {BPM}, {len}, {numplays});"""
+            tmp.execute(sql)
+            db.commit()
+            tmp.close()
+        except psycopg2.errors.UniqueViolation:
+            pass
+
     
     def toJSON(self):
         return json.dumps(self.songData)

@@ -1,6 +1,6 @@
 CREATE TABLE Song (
 	id serial,
-	title TEXT NOT NULL,
+	title  TEXT NOT NULL UNIQUE,
 	rating INT DEFAULT '4',
 	filelocation TEXT NOT NULL,
 	BPM INT,
