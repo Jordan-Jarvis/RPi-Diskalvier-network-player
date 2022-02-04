@@ -21,7 +21,7 @@ services:
     environment: 
       POSTGRES_USER:      test
       POSTGRES_PASSWORD:  keystore #${DATABASE_PASSWORD}
-      POSTGRES_DB:        rpimidi
+      # POSTGRES_DB:        rpimidi
     ports:
       - 5432:5432
     volumes:

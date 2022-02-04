@@ -3,9 +3,8 @@ import pandas
 
 connection = psycopg2.connect(
     host = 'database',
-    database = '...',
-    user = '...',
-    password = '...',
+    # database = 'rpimidi',
+    user = 'test',
+    password = 'keystore',
     port='5432'
 )
-users = pandas.read_sql('SELECT * FROM users', connection)

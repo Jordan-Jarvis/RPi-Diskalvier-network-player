@@ -5,6 +5,10 @@ from flask import json
 import os
 from src.parseMidi import *
 import sys
+import src.dbconnect as db
+
+
+
 # os.chdir(os.path.dirname(sys.argv[0]))
 import src.Player as Player
 def main():
@@ -51,6 +55,11 @@ def setPlaybackSpeed():
         speed = 1
     player.setPlaybackSpeed(float(speed))
     return Response(json.dumps({"return":"Success"}),  mimetype='application/json')
+
+@APP.route('/dbtest')
+def dbtest():
+    songs = db.pandas.read_sql('SELECT s.title, s.rating from playlist as p join songlist as sl on p.listID=sl.listid join song s on sl.songid=s.id; ', db.connection)
+    return Response(songs.to_json(),  mimetype='application/json')
 
 @APP.route('/queue')
 def queue():

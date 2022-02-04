@@ -6,3 +6,4 @@ apscheduler
 tzlocal<3.0
 sqlalchemy
 psycopg2
+pandas
