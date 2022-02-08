@@ -2,10 +2,15 @@ import os
 import json
 from . import Song
 class Playlist():
-    def __init__(self,location, systemSettings):
+    def __init__(self,location, systemSettings, db):
+        self.db = db
         self.currentSong = -1
         self.systemSettings = systemSettings
-        self.refresh(location)
+        # query playlist table and songs
+        
+        
+        self.refresh(location) # need to do, get playlist from DB, create scanner to add songs and playlists from folder structure.
+        
         
     def refresh(self, location):
         songs = os.listdir(location)
@@ -14,7 +19,7 @@ class Playlist():
         for item in songs:
             if item.endswith(".mid") or item.endswith(".MID"):
                 try:
-                    self.SongList.append(Song.Song(f"{location}/{item}", autoWriteData=True))
+                    self.SongList.append(Song.Song(f"{location}/{item}",self.db, autoWriteData=True))
                     
                 except FileNotFoundError:
                     raise FileNotFoundError("Could not find metamidi")

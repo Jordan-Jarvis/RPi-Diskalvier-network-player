@@ -6,14 +6,19 @@ import os
 from src.parseMidi import *
 import sys
 import src.dbconnect as db
+cur = db.connection.cursor()
+cur.execute("SELECT * FROM song;")
+print(cur.fetchmany(size=20))
 
-
-
+import src.scanner as scanner
+scan = scanner.scanner(cur, '/app/src/music')
+scan.scan()
 # os.chdir(os.path.dirname(sys.argv[0]))
+exit()
 import src.Player as Player
 def main():
     global player 
-    player = Player.Player()
+    player = Player.Player(db.connection)
 
 def parseRequest(request):
     speed = request.args.get("speed")
@@ -71,7 +76,7 @@ def nowPlaying():
 
 @APP.route('/pause')
 def pause():
-    player.playlist.get_current_song().save_to_db(db.connection)
+    player.playlist.get_current_song().save_to_db()
     player.pause()
     return player.nowPlayingJSON()
 

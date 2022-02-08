@@ -5,7 +5,8 @@ services:
     ports:
       - "8079:8079"
     volumes:
-      - '/dev:/dev'
+      - /dev:/dev
+      - ./src/music:/app/src/music
     privileged: true
     stop_signal: SIGINT
     depends_on:

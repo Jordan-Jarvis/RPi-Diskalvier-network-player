@@ -9,8 +9,8 @@ from . import SystemInterface
 Systeminterface = SystemInterface.SystemInterface()
 class Song:
     
-    def __init__(self, fileLocation, autoWriteData = False):
-        
+    def __init__(self, fileLocation, db, autoWriteData = False):
+        self.db=db
         self.autoWriteData = autoWriteData
         self.songData = {}
         self.newData = False
@@ -27,20 +27,20 @@ class Song:
             if self.autoWriteData:
                 self.writeData()
     
-    def save_to_db(self, db):
+    def save_to_db(self):
         try:
-            db.autocommit = True
+            self.db.autocommit = True
             title=self.getTitle()
             rating=self.getStars()
             filelocation=self.getLocation()
             BPM=self.getBPM()
             len=self.getLength()
             numplays=3
-            tmp = db.cursor()
+            tmp = self.db.cursor()
             sql= f"""INSERT INTO Song (title, rating, filelocation, BPM, len, numplays)
             VALUES ('{title}', {rating}, '{filelocation}', {BPM}, {len}, {numplays});"""
             tmp.execute(sql)
-            db.commit()
+            self.db.commit()
             tmp.close()
         except psycopg2.errors.UniqueViolation:
             pass

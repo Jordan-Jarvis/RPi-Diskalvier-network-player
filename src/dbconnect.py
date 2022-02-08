@@ -9,15 +9,3 @@ connection = psycopg2.connect(
     port='5432'
 )
 connection.autocommit = True
-title="JAKEJAKE"
-rating=3
-filelocation="dev/null"
-BPM=120
-len=134.4
-numplays=3
-tmp = connection.cursor()
-sql= f"""INSERT INTO Song (title, rating, filelocation, BPM, len, numplays)
-VALUES ('{title}', {rating}, '{filelocation}', {BPM}, {len}, {numplays});"""
-tmp.execute(sql)
-connection.commit()
-tmp.close()
