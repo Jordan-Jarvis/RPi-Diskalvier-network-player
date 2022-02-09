@@ -27,23 +27,7 @@ class Song:
             if self.autoWriteData:
                 self.writeData()
     
-    def save_to_db(self):
-        try:
-            self.db.autocommit = True
-            title=self.getTitle()
-            rating=self.getStars()
-            filelocation=self.getLocation()
-            BPM=self.getBPM()
-            len=self.getLength()
-            numplays=3
-            tmp = self.db.cursor()
-            sql= f"""INSERT INTO Song (title, rating, filelocation, BPM, len, numplays)
-            VALUES ('{title}', {rating}, '{filelocation}', {BPM}, {len}, {numplays});"""
-            tmp.execute(sql)
-            self.db.commit()
-            tmp.close()
-        except psycopg2.errors.UniqueViolation:
-            pass
+
 
     
     def toJSON(self):
@@ -133,7 +117,7 @@ class Song:
         
         midiFile = mido.MidiFile(file)
         mid = []
-        midiinfo = Systeminterface.runCommand([self.cwd + f'/metamidi/metamidi{ext}', '-l' , file])
+        midiinfo = Systeminterface.runCommand([ f'{self.cwd}/src/metamidi/metamidi{ext}', '-l' , file])
         midiinfo = midiinfo.split(';')
         LastModifiedTime = self.parseDate(file)
         try:
@@ -171,8 +155,9 @@ class Song:
         return(temp[4] + "-"+ str(temp[1])+ "-" +temp[2])
 
     def writeData(self):
-        with open(self.getLocation() + ".json", 'w') as json_file:
-            json.dump(self.songData, json_file)
+        pass
+        # with open(self.getLocation() + ".json", 'w') as json_file:
+        #     json.dump(self.songData, json_file)
 
     def getDicot(self):
         return self.songData

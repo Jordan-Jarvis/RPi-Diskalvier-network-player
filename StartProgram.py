@@ -6,9 +6,10 @@ import os
 from src.parseMidi import *
 import sys
 import src.dbconnect as db
-cur = db.connection.cursor()
-cur.execute("SELECT * FROM song;")
-print(cur.fetchmany(size=20))
+cur = db.connection
+
+# cur.execute("SELECT * FROM song;")
+# print(cur.fetchmany(size=20))
 
 import src.scanner as scanner
 scan = scanner.scanner(cur, '/app/src/music')
