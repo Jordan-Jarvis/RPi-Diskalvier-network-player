@@ -15,11 +15,11 @@ import src.scanner as scanner
 scan = scanner.scanner(cur, '/app/src/music')
 scan.scan()
 # os.chdir(os.path.dirname(sys.argv[0]))
-exit()
+
 import src.Player as Player
 def main():
     global player 
-    player = Player.Player(db.connection)
+    player = Player.Player(db.connection, '/app/src/music')
 
 def parseRequest(request):
     speed = request.args.get("speed")

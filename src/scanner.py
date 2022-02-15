@@ -37,7 +37,11 @@ class scanner():
             # currently have tuples
             song_ids = []
             for song in song_titles:
-                tmp_song = Song(self.folder + "/" + playlist_name + "/" + song,1)
+                try:
+                    tmp_song = Song(self.folder + "/" + playlist_name + "/" + song,1)
+                except TypeError:
+                    print("Cannot read " + song)
+                    continue
                 try:
                     tmp_song.getTitle()
                     song_ids.append(self.insert_song(tmp_song))

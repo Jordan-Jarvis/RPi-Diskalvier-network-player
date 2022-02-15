@@ -112,9 +112,9 @@ class Player(midiinterface.midiinterface):
         self.repeat = False
         self.shuffle = False
         self.playNext = True
-        self.SysInter = SystemInterface.SystemInterface(musicfolder)
+        self.SysInter = SystemInterface.SystemInterface()
         self.queue = MusicQueue()
-        self.playlist_title = self.SysInter.getCurrentPlaylist()
+        self.playlist_title = self.settings.getCurrentPlaylist()
         self.playlist = Playlist.Playlist(f"{self.playlist_title}", self.SysInter,self.db)
         self.queue.addSongs(self.playlist.get_song_list())
         self.song = 0
