@@ -33,10 +33,20 @@ class scanner():
     
     def insert_playlist(self, playlist_name):
             songs_in_playlist = [name for name in os.listdir(self.folder + "/" + playlist_name) if (not os.path.isdir(name)) and name.endswith(('.mid','.midi'))]
-            song_ids = [val for val in songs_in_playlist if not (len(list(self.sql("SELECT title from song where title=%s;",vars=(self.folder + "/" + playlist_name + "/" + val,),returning=True, fetchall=True)))) > 0]
+            song_titles = [val for val in songs_in_playlist if not (len(list(self.sql("SELECT title from song where title=%s;",vars=(val,),returning=True, fetchall=True)))) > 0]
             # currently have tuples
-            
-            song_ids = [self.insert_song(Song(self.folder + "/" + playlist_name + "/" + song,1)) for song in songs_in_playlist]
+            song_ids = []
+            for song in song_titles:
+                tmp_song = Song(self.folder + "/" + playlist_name + "/" + song,1)
+                try:
+                    tmp_song.getTitle()
+                    song_ids.append(self.insert_song(tmp_song))
+                    
+                except KeyError:
+                    continue
+                print("hhhh")
+            print(song_ids)
+
             song_ids = [id[0] for id in song_ids]
             print(playlist_name)
             # exit()
@@ -45,15 +55,14 @@ class scanner():
             # create playlist connected to song list
             
             playlist_id = self.sql("INSERT INTO playlist (title, folderLocation) Values (%s,%s) RETURNING id;",vars=(playlist_name, f'{self.folder}/{playlist_name}'))
-            songlist = f"INSERT INTO songlist (listID, songID) VALUES "
+            songslist = []
             for i, song in enumerate(song_ids):
-                songlist += f"({playlist_id[0]},{song})"
-                if i < len(song_ids)-1:
-                    songlist += ','
-            songlist += " RETURNING id"
-            songlist += ";"
-            print(songlist)
-            songlist_id = self.sql(songlist)
+                songslist.append((playlist_id[0],song))
+            for song in songslist:
+                
+                songlist = f"INSERT INTO songlist (listID, songID) VALUES (%s, %s) RETURNING id;"
+                self.sql(songlist,vars=song)
+
             # alter playlist
             # self.sql(f"UPDATE playlist SET listID = {songlist_id[0]} WHERE id = {playlist_id[0]};", returning=False)
 
@@ -66,23 +75,25 @@ class scanner():
     def insert_songlist(self, playlist_id):
         pass
     
-    def sql(self, statement,returning=True,vars=None,fetchall=False):
+    def sql(self, statement,returning=True,vars=None,fetchall=False, many=False):
 
-            
+        if many:
+            self.cursor.executemany(statement, vars)
+        else:
             self.cursor.execute(statement, vars=vars)
-            self.db.commit()
-            if returning:
-                if fetchall:
-                    returnval=self.cursor.fetchall()
-                else:
-                    returnval = self.cursor.fetchone()
-                return returnval
+        self.db.commit()
+        if returning:
+            if fetchall:
+                returnval=self.cursor.fetchall()
             else:
-                return
+                returnval = self.cursor.fetchone()
+            return returnval
+        else:
+            return
 
 
     def insert_song(self, song: Song) -> int:
-            title=song.getTitle()
+            title=song.getTitle().split('/')[-1]
             rating=song.getStars()
             filelocation=song.getLocation()
             BPM=song.getBPM()

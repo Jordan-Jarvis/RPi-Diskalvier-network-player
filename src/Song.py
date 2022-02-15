@@ -22,7 +22,11 @@ class Song:
             with open(fileLocation + ".json") as f:
                 self.songData = json.load(f)
         else:
-            self.songData['title'],self.songData["date"],self.songData["time"], self.songData["length"],self.songData["bpm"],self.songData["userBPM"], self.songData["location"],self.songData["stars"],self.songData["playing"], self.songData["disk"] = self.getMidiInfo(fileLocation)
+            try:
+                self.songData['title'],self.songData["date"],self.songData["time"], self.songData["length"],self.songData["bpm"],self.songData["userBPM"], self.songData["location"],self.songData["stars"],self.songData["playing"], self.songData["disk"] = self.getMidiInfo(fileLocation)
+            except EOFError:
+                print(f"error! could not read {fileLocation}")
+                
             self.newData = True
             if self.autoWriteData:
                 self.writeData()
@@ -45,7 +49,7 @@ class Song:
     def set_messages(self, msgs):
         self.messages = msgs
 
-    def getTitle(self):
+    def getTitle(self) -> str:
         return self.songData["title"]
 
     def setTitle(self, title):
@@ -121,9 +125,10 @@ class Song:
         midiinfo = midiinfo.split(';')
         LastModifiedTime = self.parseDate(file)
         try:
-            return file, LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), file, "4",0,"1"
+            return file.split('/')[-1], LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), file, "4",0,"1"
         except:
             print(midiinfo)
+            
     def parseDate(self,fileLocation):
         temp = time.ctime(os.path.getmtime(fileLocation))
         temp = temp.split()

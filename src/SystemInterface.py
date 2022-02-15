@@ -67,7 +67,6 @@ class SystemInterface():
         stdout, stderr = process.communicate()
         stdout, stderr
         encoding = 'utf-8'
-        #print(stdout)
         stdout = stdout.decode('utf-8',errors="ignore")
         return stdout
 
