@@ -63,7 +63,7 @@ class scanner():
             for i, song in enumerate(song_ids):
                 songslist.append((playlist_id[0],song))
             for song in songslist:
-                
+                #STILL DUPLICATING ENTRIES! FIX IT!
                 songlist = f"INSERT INTO songlist (listID, songID) VALUES (%s, %s) RETURNING id;"
                 self.sql(songlist,vars=song)
 
