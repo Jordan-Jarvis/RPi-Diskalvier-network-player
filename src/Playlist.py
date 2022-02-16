@@ -2,6 +2,7 @@ import os
 import json
 from . import Song
 class Playlist():
+    
     def __init__(self,location, systemSettings, db):
         self.db = db
         self.currentSong = -1
@@ -11,7 +12,21 @@ class Playlist():
         
         self.refresh(location) # need to do, get playlist from DB, create scanner to add songs and playlists from folder structure.
         
-        
+    def sql(self, statement,returning=True,vars=None,fetchall=False, many=False):
+    
+        if many:
+            self.cursor.executemany(statement, vars)
+        else:
+            self.cursor.execute(statement, vars=vars)
+        self.db.commit()
+        if returning:
+            if fetchall:
+                returnval=self.cursor.fetchall()
+            else:
+                returnval = self.cursor.fetchone()
+            return returnval
+        else:
+            return
     def refresh(self, location):
         songs = os.listdir(location)
         songs.sort()

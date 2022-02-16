@@ -104,6 +104,8 @@ class Player(midiinterface.midiinterface):
         super().__init__(backend="mido",settingsfile = 'midisettings.json')
         scheduler = BackgroundScheduler()
         self.db = db
+        self.cursor = self.db.cursor()
+
         scheduler.add_job(self.refreshData, 'interval', seconds=1.5)
         scheduler.start()
 
@@ -114,7 +116,10 @@ class Player(midiinterface.midiinterface):
         self.playNext = True
         self.SysInter = SystemInterface.SystemInterface()
         self.queue = MusicQueue()
-        self.playlist_title = self.settings.getCurrentPlaylist()
+        self.playlist_title = self.settings['lastplaylist']
+        if self.playlist_title == 0:
+            print(self.sql("SELECT title from playlist"))
+        exit()
         self.playlist = Playlist.Playlist(f"{self.playlist_title}", self.SysInter,self.db)
         self.queue.addSongs(self.playlist.get_song_list())
         self.song = 0
