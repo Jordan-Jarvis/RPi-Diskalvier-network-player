@@ -118,12 +118,27 @@ class Player(midiinterface.midiinterface):
         self.queue = MusicQueue()
         self.playlist_title = self.settings['lastplaylist']
         if self.playlist_title == 0:
-            print(self.sql("SELECT title from playlist"))
-        exit()
+            self.playlist_title = self.sql("SELECT title from playlist")[0]
         self.playlist = Playlist.Playlist(f"{self.playlist_title}", self.SysInter,self.db)
         self.queue.addSongs(self.playlist.get_song_list())
         self.song = 0
         self.getLastSong()
+        
+    def sql(self, statement,returning=True,vars=None,fetchall=False, many=False):
+    
+        if many:
+            self.cursor.executemany(statement, vars)
+        else:
+            self.cursor.execute(statement, vars=vars)
+        self.db.commit()
+        if returning:
+            if fetchall:
+                returnval=self.cursor.fetchall()
+            else:
+                returnval = self.cursor.fetchone()
+            return returnval
+        else:
+            return
 
     def refreshData(self):
         if self.status['status'] == 'played':
