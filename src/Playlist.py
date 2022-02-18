@@ -3,16 +3,33 @@ import json
 from . import Song
 class Playlist():
     
-    def __init__(self,location, systemSettings, db):
+    def __init__(self,title, systemSettings, db, cursor):
         self.db = db
+        self.cursor = cursor
         self.currentSong = -1
         self.systemSettings = systemSettings
-        # query playlist table and songs
+        # query playlist table and songs 	id serial,
+        songs = self.sql("SELECT s.title, s.rating, s.filelocation, s.BPM, s.len, s.numplays from playlist as p join songlist as sl on p.id=sl.listid join song s on sl.songid=s.id where p.title=%s",fetchall=True, vars=(title,))
+        print(songs[0])
+        for song in songs:
+            self.SongList.append(Song.Song(f"{location}/{item}",self.db, autoWriteData=True))
+        exit()
         
+    def sql(self, statement,returning=True,vars=None,fetchall=False, many=False):
         
-        self.refresh(location) # need to do, get playlist from DB, create scanner to add songs and playlists from folder structure.
-        
-    
+        if many:
+            self.cursor.executemany(statement, vars)
+        else:
+            self.cursor.execute(statement, vars=vars)
+        self.db.commit()
+        if returning:
+            if fetchall:
+                returnval=self.cursor.fetchall()
+            else:
+                returnval = self.cursor.fetchone()
+            return returnval
+        else:
+            return
     def refresh(self, location):
         songs = os.listdir(location)
         songs.sort()

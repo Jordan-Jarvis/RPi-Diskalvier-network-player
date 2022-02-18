@@ -119,7 +119,7 @@ class Player(midiinterface.midiinterface):
         self.playlist_title = self.settings['lastplaylist']
         if self.playlist_title == 0:
             self.playlist_title = self.sql("SELECT title from playlist")[0]
-        self.playlist = Playlist.Playlist(f"{self.playlist_title}", self.SysInter,self.db)
+        self.playlist = Playlist.Playlist(f"{self.playlist_title}", self.SysInter,self.db, self.cursor)
         self.queue.addSongs(self.playlist.get_song_list())
         self.song = 0
         self.getLastSong()
