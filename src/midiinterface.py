@@ -65,7 +65,8 @@ class midiinterface:
             'outPort',
             'backend',
             {"end":"end"},
-            {'speed':1.0}
+            {'speed':1.0},
+            {'lastplaylist'}
         ]
         self.settings = Settings(settingsfile,all_settings)
         if backend == 'mido':

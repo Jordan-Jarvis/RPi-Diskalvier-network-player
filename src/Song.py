@@ -9,8 +9,8 @@ from . import SystemInterface
 Systeminterface = SystemInterface.SystemInterface()
 class Song:
     
-    def __init__(self, fileLocation, autoWriteData = False):
-        
+    def __init__(self, fileLocation, db, autoWriteData = False):
+        self.db=db
         self.autoWriteData = autoWriteData
         self.songData = {}
         self.newData = False
@@ -22,28 +22,16 @@ class Song:
             with open(fileLocation + ".json") as f:
                 self.songData = json.load(f)
         else:
-            self.songData['title'],self.songData["date"],self.songData["time"], self.songData["length"],self.songData["bpm"],self.songData["userBPM"], self.songData["location"],self.songData["stars"],self.songData["playing"], self.songData["disk"] = self.getMidiInfo(fileLocation)
+            try:
+                self.songData['title'],self.songData["date"],self.songData["time"], self.songData["length"],self.songData["bpm"],self.songData["userBPM"], self.songData["location"],self.songData["stars"],self.songData["playing"], self.songData["disk"] = self.getMidiInfo(fileLocation)
+            except EOFError:
+                print(f"error! could not read {fileLocation}")
+                
             self.newData = True
             if self.autoWriteData:
                 self.writeData()
     
-    def save_to_db(self, db):
-        try:
-            db.autocommit = True
-            title=self.getTitle()
-            rating=self.getStars()
-            filelocation=self.getLocation()
-            BPM=self.getBPM()
-            len=self.getLength()
-            numplays=3
-            tmp = db.cursor()
-            sql= f"""INSERT INTO Song (title, rating, filelocation, BPM, len, numplays)
-            VALUES ('{title}', {rating}, '{filelocation}', {BPM}, {len}, {numplays});"""
-            tmp.execute(sql)
-            db.commit()
-            tmp.close()
-        except psycopg2.errors.UniqueViolation:
-            pass
+
 
     
     def toJSON(self):
@@ -61,7 +49,7 @@ class Song:
     def set_messages(self, msgs):
         self.messages = msgs
 
-    def getTitle(self):
+    def getTitle(self) -> str:
         return self.songData["title"]
 
     def setTitle(self, title):
@@ -133,13 +121,14 @@ class Song:
         
         midiFile = mido.MidiFile(file)
         mid = []
-        midiinfo = Systeminterface.runCommand([self.cwd + f'/metamidi/metamidi{ext}', '-l' , file])
+        midiinfo = Systeminterface.runCommand([ f'{self.cwd}/src/metamidi/metamidi{ext}', '-l' , file])
         midiinfo = midiinfo.split(';')
         LastModifiedTime = self.parseDate(file)
         try:
-            return file, LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), file, "4",0,"1"
+            return file.split('/')[-1], LastModifiedTime, "6:15 pm", midiFile.length, int(midiinfo[6].split(',')[0].split('.')[0]), int(midiinfo[6].split(',')[0].split('.')[0]), file, "4",0,"1"
         except:
             print(midiinfo)
+            
     def parseDate(self,fileLocation):
         temp = time.ctime(os.path.getmtime(fileLocation))
         temp = temp.split()
@@ -171,8 +160,9 @@ class Song:
         return(temp[4] + "-"+ str(temp[1])+ "-" +temp[2])
 
     def writeData(self):
-        with open(self.getLocation() + ".json", 'w') as json_file:
-            json.dump(self.songData, json_file)
+        pass
+        # with open(self.getLocation() + ".json", 'w') as json_file:
+        #     json.dump(self.songData, json_file)
 
     def getDicot(self):
         return self.songData

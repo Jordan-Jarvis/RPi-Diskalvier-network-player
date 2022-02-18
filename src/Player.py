@@ -100,24 +100,45 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 class Player(midiinterface.midiinterface):
 
-    def __init__(self):
+    def __init__(self,db, musicfolder):
         super().__init__(backend="mido",settingsfile = 'midisettings.json')
         scheduler = BackgroundScheduler()
-        scheduler.add_job(self.refreshData, 'interval', seconds=0.2)
+        self.db = db
+        self.cursor = self.db.cursor()
+
+        scheduler.add_job(self.refreshData, 'interval', seconds=1.5)
         scheduler.start()
 
-        #add your job here 
+        #Need to do, Create playlist scraper/auto generator for DB, change folder based playlist into DB based
 
         self.repeat = False
         self.shuffle = False
         self.playNext = True
         self.SysInter = SystemInterface.SystemInterface()
         self.queue = MusicQueue()
-        self.playlist_title = self.SysInter.getCurrentPlaylist()
-        self.playlist = Playlist.Playlist(f"music/{self.playlist_title}", self.SysInter)
+        self.playlist_title = self.settings['lastplaylist']
+        if self.playlist_title == 0:
+            self.playlist_title = self.sql("SELECT title from playlist")[0]
+        self.playlist = Playlist.Playlist(f"{self.playlist_title}", self.SysInter,self.db, self.cursor)
         self.queue.addSongs(self.playlist.get_song_list())
         self.song = 0
         self.getLastSong()
+        
+    def sql(self, statement,returning=True,vars=None,fetchall=False, many=False):
+    
+        if many:
+            self.cursor.executemany(statement, vars)
+        else:
+            self.cursor.execute(statement, vars=vars)
+        self.db.commit()
+        if returning:
+            if fetchall:
+                returnval=self.cursor.fetchall()
+            else:
+                returnval = self.cursor.fetchone()
+            return returnval
+        else:
+            return
 
     def refreshData(self):
         if self.status['status'] == 'played':

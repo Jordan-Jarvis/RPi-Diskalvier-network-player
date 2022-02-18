@@ -14,26 +14,11 @@ class SystemInterface():
 
         if os.path.exists(os.getcwd() + "/" + configFile):
             with open(os.getcwd() + "/" + configFile) as f:
-                self.settings = json.load(f)
-            self.getPlaylists()
-            print(self.settings["playlists"])
-            if self.settings["playlist"] not in self.settings["playlists"]:
-                self.settings["playlist"] = self.settings["playlists"][0]
-            
+                self.settings = json.load(f)            
         else:
             self.settings = {}
-            self.settings["playlist"] = "Classical-I"
             self.writeData()
         return self.settings
-
-    def getPlaylists(self):
-        playlists = []
-        for item in os.listdir(os.getcwd() + "/playlists/"):
-            if os.path.isdir(os.getcwd() + "/playlists/" + item):
-                playlists.append(item)
-        playlists.sort()
-        self.settings["playlists"] = playlists
-        return playlists
 
     def writeData(self):
         with open(os.getcwd() + "/" + self.configFile, 'w') as json_file:
@@ -75,12 +60,6 @@ class SystemInterface():
         print(self.settings["selectedInPort"])
         self.writeData()
 
-    def getCurrentPlaylist(self):
-        return self.settings["playlist"]
-
-    def setCurrentPlaylist(self, playlist):
-        self.settings["playlist"] = playlist
-
     def runCommand(self, command):
         process = subprocess.Popen(command,
         stdout=subprocess.PIPE, 
@@ -88,7 +67,6 @@ class SystemInterface():
         stdout, stderr = process.communicate()
         stdout, stderr
         encoding = 'utf-8'
-        #print(stdout)
         stdout = stdout.decode('utf-8',errors="ignore")
         return stdout
 
