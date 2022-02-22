@@ -9,7 +9,18 @@ from . import SystemInterface
 Systeminterface = SystemInterface.SystemInterface()
 class Song:
     
-    def __init__(self, fileLocation, db, autoWriteData = False):
+    def __init__(self, fileLocation, db, autoWriteData = False, prepopdata=None):
+        if prepopdata is not None:
+            self.songData['title'] =prepopdata[1]
+            self.songData["date"] = prepopdata[]
+            self.songData["time"] = 
+            self.songData["length"] = 
+            self.songData["bpm"] = 
+            self.songData["userBPM" = ]
+            self.songData["location"] = 
+            self.songData["stars"] = 
+            self.songData["playing"] = 
+            self.songData["disk"] = 
         self.db=db
         self.autoWriteData = autoWriteData
         self.songData = {}
@@ -99,12 +110,7 @@ class Song:
             self.writeData()
         self.newData = True
 
-    def getPlaying(self):
-        return self.songData["playing"]
 
-    def setPlaying(self, playing):
-        self.songData["playing"] = playing
-        self.newData = True
 
     def getNewData(self):
         return self.songData["newData"]
