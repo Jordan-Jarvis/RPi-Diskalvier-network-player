@@ -8,12 +8,12 @@ class Playlist():
         self.cursor = cursor
         self.currentSong = -1
         self.systemSettings = systemSettings
+        self.SongList = []
         # query playlist table and songs 	id serial,
         songs = self.sql("SELECT s.title, s.rating, s.filelocation, s.BPM, s.len, s.numplays from playlist as p join songlist as sl on p.id=sl.listid join song s on sl.songid=s.id where p.title=%s",fetchall=True, vars=(title,))
         print(songs[0])
         for song in songs:
-            self.SongList.append(Song.Song(f"{location}/{item}",self.db, autoWriteData=True))
-        exit()
+            self.SongList.append(Song.Song(song[2],self.db,prepopdata=song, autoWriteData=True))
         
     def sql(self, statement,returning=True,vars=None,fetchall=False, many=False):
         
@@ -68,27 +68,16 @@ class Playlist():
         self.currentSong = index
 
     def get_song_list(self):
-        for i in range(len(self.SongList)):
-            self.SongList[i].setPlaying(0) # reset all songs
-        self.SongList[i].setPlaying(1) # set the one song to playing
         return self.SongList
     
     def get_song_list_dict(self):
-        for i in range(len(self.SongList)):
-            self.SongList[i].setPlaying(0) # reset all songs
-        self.SongList[i].setPlaying(1) # set the one song to playing
         TempSongList = []
         for song in self.SongList:
             TempSongList.append(song.getDict())
         return TempSongList
 
     def get_song_list_list(self):
-        for i in range(len(self.SongList)):
-            self.SongList[i].setPlaying(0) # reset all songs
-        self.SongList[self.get_current_song_index()].setPlaying(1) # set the one song to playing
         TempSongList = []
         for song in self.SongList:
             TempSongList.append(song.getList())
         return TempSongList
-
-from shutil import copyfile
