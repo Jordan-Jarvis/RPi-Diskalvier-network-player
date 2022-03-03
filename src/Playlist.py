@@ -6,6 +6,7 @@ class Playlist():
     def __init__(self,title, systemSettings, db, cursor):
         self.db = db
         self.cursor = cursor
+        self.title = title
         self.currentSong = -1
         self.systemSettings = systemSettings
         self.SongList = []
@@ -14,7 +15,18 @@ class Playlist():
         print(songs[0])
         for song in songs:
             self.SongList.append(Song.Song(song[2],self.db,prepopdata=song, autoWriteData=True))
+
         
+    def to_json(self):
+        jsondata = {}
+        jsondata['currentSong'] = self.currentSong
+        jsondata['title'] = self.title
+        songs = []
+        for song in self.SongList:
+            songs.append(json.loads(song.toJSON()))
+        jsondata['songs'] = songs
+        return json.dumps(jsondata)
+            
     def sql(self, statement,returning=True,vars=None,fetchall=False, many=False):
         
         if many:

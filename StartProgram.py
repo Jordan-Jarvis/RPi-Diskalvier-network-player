@@ -37,6 +37,22 @@ def staticFile(name):
     """
     return flask.send_file("static/" + name)
 
+@APP.route('/getPlaylists')
+def getPlaylists():
+    """ Displays the page greats who ever comes to visit it.
+    """
+    return Response(json.dumps(player.getPlaylists()),  mimetype='application/json')
+
+@APP.route('/getPlaylist')
+def getPlaylist():
+    """ Displays the page greats who ever comes to visit it.
+    """
+    
+    playlist = request.args.get("playlist")
+    if playlist is None:
+        playlist = 'Classical-I'
+    return Response(player.getPlaylist(playlist).to_json(),  mimetype='application/json')
+
 @APP.route('/dl/<name>/')
 def download(name):
     """ Displays the page greats who ever comes to visit it.
