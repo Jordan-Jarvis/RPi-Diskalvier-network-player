@@ -51,7 +51,7 @@ def getPlaylist():
     playlist = request.args.get("playlist")
     if playlist is None:
         playlist = 'Classical-I'
-    return Response(player.getPlaylist(playlist).to_json(),  mimetype='application/json')
+    return Response(player.getPlaylist(playlist).to_json(),  mimetype='application/json',content_type='application/json',)
 
 @APP.route('/dl/<name>/')
 def download(name):

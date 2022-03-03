@@ -10,7 +10,6 @@ class Playlist():
         self.currentSong = -1
         self.systemSettings = systemSettings
         self.SongList = []
-        # query playlist table and songs 	id serial,
         songs = self.sql("SELECT s.title, s.rating, s.filelocation, s.BPM, s.len, s.numplays from playlist as p join songlist as sl on p.id=sl.listid join song s on sl.songid=s.id where p.title=%s",fetchall=True, vars=(title,))
         print(songs[0])
         for song in songs:

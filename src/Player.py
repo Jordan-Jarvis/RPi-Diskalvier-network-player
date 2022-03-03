@@ -108,9 +108,6 @@ class Player(midiinterface.midiinterface):
 
         scheduler.add_job(self.refreshData, 'interval', seconds=1.5)
         scheduler.start()
-
-        #Need to do, Create playlist scraper/auto generator for DB, change folder based playlist into DB based
-
         self.repeat = False
         self.shuffle = False
         self.playNext = True

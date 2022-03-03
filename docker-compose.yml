@@ -6,7 +6,7 @@ services:
       - "8079:8079"
     volumes:
       - /dev:/dev
-      - ./src/music:/app/src/music
+      - ./music:/app/src/music
     privileged: true
     stop_signal: SIGINT
     depends_on:
