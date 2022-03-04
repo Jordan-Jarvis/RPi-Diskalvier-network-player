@@ -48,7 +48,6 @@ class scanner():
                     
                 except KeyError:
                     continue
-                print("hhhh")
             print(song_ids)
 
             song_ids = [id[0] for id in song_ids]
