@@ -9,7 +9,7 @@ from . import SystemInterface
 Systeminterface = SystemInterface.SystemInterface()
 class Song:
     
-    def __init__(self, fileLocation, db, autoWriteData = False):
+    def __init__(self, fileLocation, db, autoWriteData = False, prepopdata=None):
         self.db=db
         self.autoWriteData = autoWriteData
         self.songData = {}
@@ -18,9 +18,20 @@ class Song:
 
 
 
-        if os.path.exists(fileLocation + '.json'):
-            with open(fileLocation + ".json") as f:
-                self.songData = json.load(f)
+        if prepopdata is not None:
+            self.songData['title'] =prepopdata[0]
+            self.songData["date"] = "today"
+            self.songData["time"] = "4:00 PM"
+            self.songData["length"] = prepopdata[4]
+            self.songData["bpm"] = prepopdata[3]
+            self.songData["userBPM"] = 120
+            self.songData["location"] = prepopdata[2]
+            self.songData["stars"] = prepopdata[1]
+            self.songData["playing"] = 1
+            self.songData["disk"] = 1
+        # if os.path.exists(fileLocation + '.json'):
+        #     with open(fileLocation + ".json") as f:
+        #         self.songData = json.load(f)
         else:
             try:
                 self.songData['title'],self.songData["date"],self.songData["time"], self.songData["length"],self.songData["bpm"],self.songData["userBPM"], self.songData["location"],self.songData["stars"],self.songData["playing"], self.songData["disk"] = self.getMidiInfo(fileLocation)
@@ -99,12 +110,7 @@ class Song:
             self.writeData()
         self.newData = True
 
-    def getPlaying(self):
-        return self.songData["playing"]
 
-    def setPlaying(self, playing):
-        self.songData["playing"] = playing
-        self.newData = True
 
     def getNewData(self):
         return self.songData["newData"]
