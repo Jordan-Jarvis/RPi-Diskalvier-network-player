@@ -93,7 +93,7 @@ def nowPlaying():
 
 @APP.route('/pause')
 def pause():
-    player.playlist.get_current_song().save_to_db()
+    player.playlist.get_current_song() # Save current song to db?
     player.pause()
     return player.nowPlayingJSON()
 
