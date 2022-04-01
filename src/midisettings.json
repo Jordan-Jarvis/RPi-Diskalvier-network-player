@@ -1,0 +1,8 @@
+{
+    "inPort": 0,
+    "outPort": "yoshimi:input 130:0",
+    "backend": 0,
+    "end": "end",
+    "speed": 1.0,
+    "lastplaylist":0
+}

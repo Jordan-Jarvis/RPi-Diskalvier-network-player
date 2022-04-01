@@ -48,7 +48,6 @@ class scanner():
                     
                 except KeyError:
                     continue
-                print("hhhh")
             print(song_ids)
 
             song_ids = [id[0] for id in song_ids]
@@ -103,6 +102,7 @@ class scanner():
             BPM=song.getBPM()
             len=song.getLength()
             numplays=3
+            print(f"Adding song {title}")
             sql= "INSERT INTO Song (title, rating, filelocation, BPM, len, numplays) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
             try:
                 song_id = self.sql(sql, vars=(title,rating,filelocation,BPM,len,numplays))
