@@ -4,7 +4,7 @@ RUN apt-get update -y
 # set timezone for apscheduler
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone 
 ENV TZ=America/Denver
-
+RUN apt install -y git
 # install python
 RUN apt-get install -y python3 python3-pip pkg-config 
 RUN apt-get install -y build-essential libpq-dev 

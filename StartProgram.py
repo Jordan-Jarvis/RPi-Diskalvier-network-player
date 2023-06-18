@@ -1,3 +1,4 @@
+import operator
 import flask
 from flask import Flask, request, send_from_directory, jsonify
 from flask import Response
@@ -30,7 +31,7 @@ def parseRequest(request):
 APP = flask.Flask(__name__)
 
 
-
+        
 @APP.route('/static/<name>/')
 def staticFile(name):
     """ Displays the page greats who ever comes to visit it.
@@ -53,6 +54,7 @@ def getPlaylist():
         playlist = 'Classical-I'
     return Response(player.getPlaylist(playlist).to_json(),  mimetype='application/json',content_type='application/json',)
 
+
 @APP.route('/dl/<name>/')
 def download(name):
     """ Displays the page greats who ever comes to visit it.
@@ -63,9 +65,15 @@ def download(name):
 
 @APP.route('/selectsong-<index>')
 def startSong(index):
-    index = int(index)
-    player.stop()
-    player.queue.setCurrentSongIndex(index)
+    try:
+        index = int(index)
+        player.stop()
+        player.queue.setCurrentSongIndex(index)
+    except:
+        player.stop()
+        
+        #index is a song name, less reliable, but will attempt
+        
     player.set_current_song(player.queue.getCurrentSong())
     player.play()
     return Response(player.nowPlayingJSON(),  mimetype='application/json')
@@ -146,12 +154,25 @@ def setOutPort():
 
 @APP.route('/')
 def index():
-    """ Displays the index page accessible at '/'
-    """
+    return routes()
     
-    return flask.send_file('./Midirec.html')
+    #return flask.send_file('./Midirec.html')
 
-app = Flask(__name__, static_url_path='')
+@APP.route("/site-map")
+def routes():
+    'Display registered routes'
+    rules = []
+    for rule in APP.url_map.iter_rules():
+        methods = ','.join(sorted(rule.methods))
+        rules.append((rule.endpoint, methods, str(rule)))
+
+    sort_by_rule = operator.itemgetter(2)
+    for endpoint, methods, rule in sorted(rules, key=sort_by_rule):
+        route = '{:50s} {:25s} {}'.format(endpoint, methods, rule)
+        print(route)
+    return rules
+
+
 
 def escapeSpaces(stringInput):
     return stringInput.replace(" ", "\\ ")

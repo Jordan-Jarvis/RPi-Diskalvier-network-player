@@ -21,8 +21,11 @@ class Playlist():
         jsondata['currentSong'] = self.currentSong
         jsondata['title'] = self.title
         songs = []
-        for song in self.SongList:
-            songs.append(json.loads(song.toJSON()))
+        for i, song in enumerate(self.SongList):
+            songTMP = song.toJSON()
+            songTMP = json.loads(songTMP)
+            songTMP["index"] = i
+            songs.append(songTMP)
         jsondata['songs'] = songs
         return json.dumps(jsondata)
             
